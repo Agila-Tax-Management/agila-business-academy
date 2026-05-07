@@ -1,0 +1,34 @@
+// prisma/models/internal-notif.prisma
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  ACTION_REQUIRED
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model InternalNotification {
+  id          String               @id @default(cuid())
+  recipientId String
+  type        NotificationType     @default(INFO)
+  priority    NotificationPriority @default(NORMAL)
+  title       String
+  message     String
+  entity      String?
+  entityId    String?
+  actionUrl   String?
+  readAt      DateTime?
+  createdAt   DateTime             @default(now())
+
+  recipient User @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@map("internal_notifications")
+}

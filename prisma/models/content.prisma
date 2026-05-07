@@ -1,0 +1,55 @@
+// prisma/models/content.prisma
+
+model Series {
+  id                 String   @id @default(cuid())
+  title              String
+  description        String?
+  thumbnailUrl       String?
+  isPublic           Boolean  @default(false)
+  requiresCertificate Boolean @default(false)
+  order              Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  modules           Module[]
+  enrollments       Enrollment[]
+  seriesCompletions SeriesCompletion[]
+  exam              Exam?    @relation("SeriesExam")
+
+  @@map("series")
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  seriesId    String
+  title       String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  series            Series             @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  videos            Video[]
+  moduleCompletions ModuleCompletion[]
+  exam              Exam?              @relation("ModuleExam")
+
+  @@map("modules")
+}
+
+model Video {
+  id           String   @id @default(cuid())
+  moduleId     String
+  title        String
+  description  String?
+  videoUrl     String
+  durationSeconds Int   @default(0)
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  module        Module          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  videoProgress VideoProgress[]
+  exam          Exam?           @relation("VideoExam")
+
+  @@map("videos")
+}

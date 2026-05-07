@@ -1,0 +1,30 @@
+# .dockerignore
+
+# Dependencies — reinstalled inside the image
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Prisma generated client — regenerated during image build
+src/generated/
+
+# Environment files — injected at runtime via compose.yaml or secrets
+.env
+.env.*
+!.env.example
+
+# Dev/editor artifacts
+.git/
+.github/
+.vscode/
+*.log
+npm-debug.log*
+
+# Test outputs
+coverage/
+
+# OS artifacts
+.DS_Store
+Thumbs.db

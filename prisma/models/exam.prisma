@@ -1,0 +1,100 @@
+// prisma/models/exam.prisma
+
+enum ExamScope {
+  VIDEO
+  MODULE
+  SERIES
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+model Exam {
+  id           String    @id @default(cuid())
+  title        String
+  scope        ExamScope
+  passingScore Int       @default(75)
+  maxAttempts  Int       @default(0)
+  timeLimitMin Int?
+
+  // Scope relations (only one will be set)
+  videoId  String? @unique
+  moduleId String? @unique
+  seriesId String? @unique
+
+  video  Video?  @relation("VideoExam", fields: [videoId], references: [id], onDelete: Cascade)
+  module Module? @relation("ModuleExam", fields: [moduleId], references: [id], onDelete: Cascade)
+  series Series? @relation("SeriesExam", fields: [seriesId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questions Question[]
+  attempts  ExamAttempt[]
+
+  @@map("exams")
+}
+
+model Question {
+  id       String       @id @default(cuid())
+  examId   String
+  text     String
+  type     QuestionType @default(MULTIPLE_CHOICE)
+  order    Int          @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  exam    Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  choices Choice[]
+  answers ExamAnswer[]
+
+  @@map("questions")
+}
+
+model Choice {
+  id         String  @id @default(cuid())
+  questionId String
+  text       String
+  isCorrect  Boolean @default(false)
+  order      Int     @default(0)
+
+  question Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  ExamAnswer[]
+
+  @@map("choices")
+}
+
+model ExamAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  examId      String
+  score       Int      @default(0)
+  passed      Boolean  @default(false)
+  submittedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam    Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  answers ExamAnswer[]
+
+  @@map("exam_attempts")
+}
+
+model ExamAnswer {
+  id         String @id @default(cuid())
+  attemptId  String
+  questionId String
+  choiceId   String?
+  textAnswer String?
+  createdAt  DateTime @default(now())
+
+  attempt  ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  choice   Choice?     @relation(fields: [choiceId], references: [id], onDelete: SetNull)
+
+  @@map("exam_answers")
+}

@@ -1,0 +1,111 @@
+// src/app/(backend)/api/videos/route.ts
+import { NextResponse } from "next/server";
+
+// ---------------------------------------------------------------------------
+// Mock data — replace body of GET with real Prisma queries once DB is ready
+// ---------------------------------------------------------------------------
+const MOCK_VIDEOS = [
+  {
+    id: "seed-vid-welcome",
+    moduleId: "seed-mod-orientation",
+    moduleTitle: "Company Orientation",
+    seriesTitle: "New Employee Onboarding",
+    title: "Welcome to Agila",
+    description: "A message from the CEO and an overview of what Agila does.",
+    durationSeconds: 420,
+    order: 1,
+    videoUrl: "https://example.com/videos/welcome-to-agila.mp4",
+  },
+  {
+    id: "seed-vid-orgchart",
+    moduleId: "seed-mod-orientation",
+    moduleTitle: "Company Orientation",
+    seriesTitle: "New Employee Onboarding",
+    title: "Organisational Structure",
+    description: "Departments, reporting lines, and key contacts.",
+    durationSeconds: 310,
+    order: 2,
+    videoUrl: "https://example.com/videos/org-chart.mp4",
+  },
+  {
+    id: "seed-vid-leave",
+    moduleId: "seed-mod-hr",
+    moduleTitle: "HR Policies & Benefits",
+    seriesTitle: "New Employee Onboarding",
+    title: "Leave & Attendance Policy",
+    description: "How to file leave requests, attendance rules, and tardiness policies.",
+    durationSeconds: 540,
+    order: 1,
+    videoUrl: "https://example.com/videos/leave-policy.mp4",
+  },
+  {
+    id: "seed-vid-conduct",
+    moduleId: "seed-mod-hr",
+    moduleTitle: "HR Policies & Benefits",
+    seriesTitle: "New Employee Onboarding",
+    title: "Code of Conduct",
+    description: "Expected behaviour, anti-harassment policy, and grievance procedures.",
+    durationSeconds: 480,
+    order: 2,
+    videoUrl: "https://example.com/videos/code-of-conduct.mp4",
+  },
+  {
+    id: "seed-vid-hazards",
+    moduleId: "seed-mod-safety",
+    moduleTitle: "Workplace Safety Basics",
+    seriesTitle: "Safety & Compliance",
+    title: "Identifying Workplace Hazards",
+    description: "Common hazards in the workplace and how to report them.",
+    durationSeconds: 390,
+    order: 1,
+    videoUrl: "https://example.com/videos/hazard-identification.mp4",
+  },
+  {
+    id: "seed-vid-ppe",
+    moduleId: "seed-mod-safety",
+    moduleTitle: "Workplace Safety Basics",
+    seriesTitle: "Safety & Compliance",
+    title: "Personal Protective Equipment",
+    description: "Correct use and maintenance of PPE for various job roles.",
+    durationSeconds: 350,
+    order: 2,
+    videoUrl: "https://example.com/videos/ppe-usage.mp4",
+  },
+  {
+    id: "seed-vid-fire",
+    moduleId: "seed-mod-emergency",
+    moduleTitle: "Emergency Response",
+    seriesTitle: "Safety & Compliance",
+    title: "Fire Safety & Evacuation",
+    description: "Fire drill procedures, exit routes, and assembly points.",
+    durationSeconds: 460,
+    order: 1,
+    videoUrl: "https://example.com/videos/fire-safety.mp4",
+  },
+  {
+    id: "seed-vid-firstaid",
+    moduleId: "seed-mod-emergency",
+    moduleTitle: "Emergency Response",
+    seriesTitle: "Safety & Compliance",
+    title: "Basic First Aid",
+    description: "CPR, wound care, and when to call emergency services.",
+    durationSeconds: 600,
+    order: 2,
+    videoUrl: "https://example.com/videos/first-aid.mp4",
+  },
+  {
+    id: "seed-vid-atms-intro",
+    moduleId: "seed-mod-atms",
+    moduleTitle: "ATMS Overview",
+    seriesTitle: "IT & Systems Basics",
+    title: "Navigating the ATMS Dashboard",
+    description: "A guided tour of the main ATMS screens and key features.",
+    durationSeconds: 520,
+    order: 1,
+    videoUrl: "https://example.com/videos/atms-intro.mp4",
+  },
+];
+
+export async function GET(): Promise<NextResponse> {
+  return NextResponse.json({ data: MOCK_VIDEOS });
+}

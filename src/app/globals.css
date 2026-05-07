@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/* ─── Light mode tokens ─────────────────────────────────────────── */
+:root {
+  --background:        #F3F4F6;
+  --foreground:        #111827;
+  --card:              #FFFFFF;
+  --card-foreground:   #111827;
+  --header:            #FFFFFF;
+  --sidebar:           #263cd9;
+  --sidebar-foreground:#FFFFFF;
+  --sidebar-muted:     rgba(255,255,255,0.55);
+  --sidebar-active:    #FFFFFF;
+  --sidebar-active-bg: rgba(255,255,255,0.2);
+  --primary:           #2563EB;
+  --primary-hover:     #1D4ED8;
+  --primary-foreground:#FFFFFF;
+  --muted:             #6B7280;
+  --muted-bg:          #F9FAFB;
+  --border:            #E5E7EB;
+  --ring:              #93C5FD;
+  --danger:            #EF4444;
+  --success:           #10B981;
+  --warning:           #F59E0B;
+  --info:              #3B82F6;
+  --radius:            0.5rem;
+}
+
+/* ─── Dark mode tokens ──────────────────────────────────────────── */
+.dark {
+  --background:        #111827;
+  --foreground:        #F9FAFB;
+  --card:              #1F2937;
+  --card-foreground:   #F9FAFB;
+  --header:            #1F2937;
+  --sidebar:           #1e31b8;
+  --sidebar-foreground:#FFFFFF;
+  --sidebar-muted:     rgba(255,255,255,0.5);
+  --sidebar-active:    #FFFFFF;
+  --sidebar-active-bg: rgba(255,255,255,0.2);
+  --primary:           #3B82F6;
+  --primary-hover:     #2563EB;
+  --primary-foreground:#FFFFFF;
+  --muted:             #9CA3AF;
+  --muted-bg:          #374151;
+  --border:            #374151;
+  --ring:              #1D4ED8;
+}
+
+/* ─── Tailwind theme bridge ─────────────────────────────────────── */
+@theme inline {
+  --color-background:        var(--background);
+  --color-foreground:        var(--foreground);
+  --color-card:              var(--card);
+  --color-card-foreground:   var(--card-foreground);
+  --color-header:            var(--header);
+  --color-sidebar:           var(--sidebar);
+  --color-sidebar-foreground:var(--sidebar-foreground);
+  --color-sidebar-muted:     var(--sidebar-muted);
+  --color-sidebar-active:    var(--sidebar-active);
+  --color-primary:           var(--primary);
+  --color-primary-foreground:var(--primary-foreground);
+  --color-muted:             var(--muted);
+  --color-muted-bg:          var(--muted-bg);
+  --color-border:            var(--border);
+  --color-danger:            var(--danger);
+  --color-success:           var(--success);
+  --color-warning:           var(--warning);
+  --color-info:              var(--info);
+  --font-sans:               var(--font-geist-sans);
+  --font-mono:               var(--font-geist-mono);
+}
+
+/* ─── Base ──────────────────────────────────────────────────────── */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+* {
+  border-color: var(--border);
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
