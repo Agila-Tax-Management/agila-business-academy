@@ -30,13 +30,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={`
-              w-full h-9 rounded-lg border border-border bg-card text-foreground text-sm
-              placeholder:text-muted transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary
+              w-full h-10 rounded-xl border border-white/60 bg-white/70 backdrop-blur-sm text-foreground text-sm
+              placeholder:text-muted/60 transition-all duration-200 shadow-sm
+              focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 focus:bg-white/90
               disabled:opacity-50 disabled:cursor-not-allowed
-              ${leftIcon ? "pl-9" : "pl-3"}
-              ${rightIcon ? "pr-9" : "pr-3"}
-              ${error ? "border-danger focus:ring-danger" : ""}
+              ${leftIcon ? "pl-9" : "pl-3.5"}
+              ${rightIcon ? "pr-9" : "pr-3.5"}
+              ${error ? "border-danger/60 focus:ring-danger/30" : ""}
               ${className}
             `}
             {...props}

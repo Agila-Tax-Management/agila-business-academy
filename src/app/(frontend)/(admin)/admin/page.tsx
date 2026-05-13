@@ -1,8 +1,10 @@
-// src/app/(admin)/admin/page.tsx
+// src/app/(frontend)/(admin)/admin/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, Video, ClipboardList, Users, TrendingUp, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { BookOpen, Video, ClipboardList, Users, TrendingUp, CheckCircle2, XCircle, Clock, Layers, BarChart3 } from "lucide-react";
+import Card from "@/components/UI/Card";
+import ProgressBar from "@/components/UI/ProgressBar";
 
 interface AdminStats {
   totalSeries: number;
@@ -58,10 +60,10 @@ export default function AdminOverviewPage(): React.ReactNode {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 space-y-6">
-        <div className="h-8 w-40 bg-muted-bg animate-pulse rounded-lg" />
+      <div className="p-6 lg:p-8 space-y-6 animate-fade-up">
+        <div className="h-8 w-40 skeleton rounded-xl" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-card rounded-xl animate-pulse" />)}
+          {[...Array(4)].map((_, i) => <div key={i} className="h-28 skeleton rounded-2xl" />)}
         </div>
       </div>
     );
@@ -70,109 +72,110 @@ export default function AdminOverviewPage(): React.ReactNode {
   if (!stats) return null;
 
   return (
-    <div className="p-6 lg:p-8 space-y-8">
-      {/* Page header */}
+    <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto animate-fade-up">
+
+      {/* ── Header ──────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Admin Overview</h1>
+        <h1 className="text-2xl font-extrabold text-foreground">Admin Overview</h1>
         <p className="text-muted text-sm mt-1">Platform-wide summary and recent activity.</p>
       </div>
 
-      {/* Stats grid */}
+      {/* ── Primary stats ────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<BookOpen className="w-5 h-5 text-primary" />} label="Series" value={stats.totalSeries} bg="bg-primary/10" />
-        <StatCard icon={<Video className="w-5 h-5 text-info" />} label="Videos" value={stats.totalVideos} bg="bg-info/10" />
-        <StatCard icon={<Users className="w-5 h-5 text-success" />} label="Employees" value={stats.totalEmployees} bg="bg-success/10" />
-        <StatCard icon={<ClipboardList className="w-5 h-5 text-warning" />} label="Exams" value={stats.totalExams} bg="bg-warning/10" />
+        {[
+          { icon: BookOpen,     label: "Series",    value: stats.totalSeries,    color: "text-indigo-500",  bg: "bg-indigo-100/80"  },
+          { icon: Video,        label: "Videos",    value: stats.totalVideos,    color: "text-sky-500",     bg: "bg-sky-100/80"     },
+          { icon: Users,        label: "Employees", value: stats.totalEmployees, color: "text-emerald-500", bg: "bg-emerald-100/80" },
+          { icon: ClipboardList,label: "Exams",     value: stats.totalExams,     color: "text-amber-500",   bg: "bg-amber-100/80"   },
+        ].map(({ icon: Icon, label, value, color, bg }) => (
+          <Card key={label} className="p-5 flex items-center gap-4">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${bg} ${color}`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-muted">{label}</p>
+              <p className="text-2xl font-extrabold text-foreground">{value}</p>
+            </div>
+          </Card>
+        ))}
       </div>
 
-      {/* Secondary stats */}
+      {/* ── Secondary stats ──────────────────────────────────── */}
       <div className="grid sm:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-xl p-5">
-          <p className="text-xs text-muted uppercase tracking-wide font-semibold">Total Attempts</p>
-          <p className="text-3xl font-bold text-foreground mt-1">{stats.totalAttempts}</p>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <p className="text-xs text-muted uppercase tracking-wide font-semibold">Pass Rate</p>
-          <p className="text-3xl font-bold text-foreground mt-1">{stats.passRate}%</p>
-          <div className="mt-2 h-1.5 bg-muted-bg rounded-full overflow-hidden">
-            <div className="h-full bg-success rounded-full" style={{ width: `${stats.passRate}%` }} />
+        <Card className="p-5 flex items-center gap-4">
+          <div className="w-11 h-11 rounded-2xl bg-rose-100/80 text-rose-500 flex items-center justify-center shrink-0">
+            <BarChart3 className="w-5 h-5" />
           </div>
-        </div>
-        <div className="bg-card border border-border rounded-xl p-5">
-          <p className="text-xs text-muted uppercase tracking-wide font-semibold">Total Modules</p>
-          <p className="text-3xl font-bold text-foreground mt-1">{stats.totalModules}</p>
-        </div>
+          <div>
+            <p className="text-xs text-muted uppercase tracking-wide font-semibold">Total Attempts</p>
+            <p className="text-2xl font-extrabold text-foreground">{stats.totalAttempts}</p>
+          </div>
+        </Card>
+
+        <Card className="p-5 space-y-2">
+          <p className="text-xs text-muted uppercase tracking-wide font-semibold">Pass Rate</p>
+          <p className="text-2xl font-extrabold text-foreground">{stats.passRate}%</p>
+          <ProgressBar value={stats.passRate} size="sm" />
+        </Card>
+
+        <Card className="p-5 flex items-center gap-4">
+          <div className="w-11 h-11 rounded-2xl bg-violet-100/80 text-violet-500 flex items-center justify-center shrink-0">
+            <Layers className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xs text-muted uppercase tracking-wide font-semibold">Total Modules</p>
+            <p className="text-2xl font-extrabold text-foreground">{stats.totalModules}</p>
+          </div>
+        </Card>
       </div>
 
-      {/* Recent attempts */}
+      {/* ── Recent attempts ──────────────────────────────────── */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-muted" />
-            Recent Exam Attempts
-          </h2>
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-primary" />
+          <h2 className="text-base font-bold text-foreground">Recent Exam Attempts</h2>
         </div>
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Employee</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide hidden sm:table-cell">Exam</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Score</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide hidden md:table-cell">Status</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide hidden lg:table-cell">Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {recent.map((a) => (
-                <tr key={a.id} className="hover:bg-muted-bg/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-foreground">{a.employeeName}</td>
-                  <td className="px-4 py-3 text-muted hidden sm:table-cell truncate max-w-45">{a.examTitle}</td>
-                  <td className="px-4 py-3 text-center font-semibold text-foreground">{a.score}%</td>
-                  <td className="px-4 py-3 text-center hidden md:table-cell">
-                    {a.passed ? (
-                      <span className="inline-flex items-center gap-1 text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">
-                        <CheckCircle2 className="w-3 h-3" /> Passed
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-medium">
-                        <XCircle className="w-3 h-3" /> Failed
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right text-muted text-xs hidden lg:table-cell">
-                    <span className="flex items-center justify-end gap-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(a.submittedAt).toLocaleDateString()}
-                    </span>
-                  </td>
+        <Card className="overflow-hidden p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/40">
+                  <th className="text-left px-5 py-3 text-xs font-bold text-muted uppercase tracking-wide">Employee</th>
+                  <th className="text-left px-5 py-3 text-xs font-bold text-muted uppercase tracking-wide hidden sm:table-cell">Exam</th>
+                  <th className="text-center px-5 py-3 text-xs font-bold text-muted uppercase tracking-wide">Score</th>
+                  <th className="text-center px-5 py-3 text-xs font-bold text-muted uppercase tracking-wide hidden md:table-cell">Status</th>
+                  <th className="text-right px-5 py-3 text-xs font-bold text-muted uppercase tracking-wide hidden lg:table-cell">Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  bg,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  bg: string;
-}): React.ReactNode {
-  return (
-    <div className="bg-card rounded-xl border border-border p-4 flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center shrink-0`}>{icon}</div>
-      <div>
-        <p className="text-xs text-muted">{label}</p>
-        <p className="text-xl font-bold text-foreground">{value}</p>
+              </thead>
+              <tbody className="divide-y divide-white/30">
+                {recent.map((a) => (
+                  <tr key={a.id} className="hover:bg-white/20 transition-colors">
+                    <td className="px-5 py-3 font-semibold text-foreground">{a.employeeName}</td>
+                    <td className="px-5 py-3 text-muted hidden sm:table-cell truncate max-w-xs">{a.examTitle}</td>
+                    <td className="px-5 py-3 text-center font-bold text-foreground">{a.score}%</td>
+                    <td className="px-5 py-3 text-center hidden md:table-cell">
+                      {a.passed ? (
+                        <span className="inline-flex items-center gap-1 text-xs bg-emerald-100/80 text-emerald-700 border border-emerald-200/60 px-2 py-0.5 rounded-full font-semibold">
+                          <CheckCircle2 className="w-3 h-3" /> Passed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs bg-rose-100/80 text-rose-700 border border-rose-200/60 px-2 py-0.5 rounded-full font-semibold">
+                          <XCircle className="w-3 h-3" /> Failed
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-right text-muted text-xs hidden lg:table-cell">
+                      <span className="flex items-center justify-end gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(a.submittedAt).toLocaleDateString()}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       </div>
     </div>
   );

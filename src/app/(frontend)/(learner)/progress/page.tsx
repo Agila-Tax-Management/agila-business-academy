@@ -1,8 +1,10 @@
-// src/app/(learner)/progress/page.tsx
+// src/app/(frontend)/(learner)/progress/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, BookOpen, CheckCircle2, Clock, Trophy } from "lucide-react";
+import { BarChart3, BookOpen, CheckCircle2, Clock, Trophy, TrendingUp } from "lucide-react";
+import Card from "@/components/UI/Card";
+import ProgressBar from "@/components/UI/ProgressBar";
 
 interface SeriesProgress {
   id: string;
@@ -89,12 +91,13 @@ export default function ProgressPage(): React.ReactNode {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 space-y-6">
-        <div className="h-8 w-48 bg-muted-bg animate-pulse rounded-lg" />
+      <div className="p-6 lg:p-8 space-y-6 animate-fade-up">
+        <div className="h-8 w-48 skeleton rounded-xl" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 bg-card rounded-xl animate-pulse" />
-          ))}
+          {[...Array(4)].map((_, i) => <div key={i} className="h-28 skeleton rounded-2xl" />)}
+        </div>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-40 skeleton rounded-2xl" />)}
         </div>
       </div>
     );
@@ -105,57 +108,55 @@ export default function ProgressPage(): React.ReactNode {
   const { stats, series } = data;
 
   return (
-    <div className="p-6 lg:p-8 space-y-8">
-      {/* Page header */}
+    <div className="p-6 lg:p-8 space-y-8 max-w-5xl mx-auto animate-fade-up">
+
+      {/* ── Header ──────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">My Progress</h1>
+        <h1 className="text-2xl font-extrabold text-foreground">My Progress</h1>
         <p className="text-muted text-sm mt-1">Track your learning journey across all enrolled series.</p>
       </div>
 
-      {/* Stats row */}
+      {/* ── Stats grid ───────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={<BookOpen className="w-5 h-5 text-primary" />}
-          label="Enrolled Series"
-          value={stats.enrolledSeries}
-          bg="bg-primary/10"
-        />
-        <StatCard
-          icon={<CheckCircle2 className="w-5 h-5 text-success" />}
-          label="Completed"
-          value={stats.completedSeries}
-          bg="bg-success/10"
-        />
-        <StatCard
-          icon={<BarChart3 className="w-5 h-5 text-warning" />}
-          label="Modules Done"
-          value={stats.totalModulesCompleted}
-          bg="bg-warning/10"
-        />
-        <StatCard
-          icon={<Trophy className="w-5 h-5 text-info" />}
-          label="Avg. Exam Score"
-          value={stats.avgScore !== null ? `${stats.avgScore}%` : "—"}
-          bg="bg-info/10"
-        />
+        {[
+          { icon: BookOpen,     label: "Enrolled",    value: stats.enrolledSeries,                          color: "text-indigo-500",  bg: "bg-indigo-100/80" },
+          { icon: CheckCircle2, label: "Completed",   value: stats.completedSeries,                         color: "text-emerald-500", bg: "bg-emerald-100/80"},
+          { icon: BarChart3,    label: "Modules Done",value: stats.totalModulesCompleted,                   color: "text-amber-500",   bg: "bg-amber-100/80"  },
+          { icon: Trophy,       label: "Avg. Score",  value: stats.avgScore !== null ? `${stats.avgScore}%` : "—", color: "text-violet-500", bg: "bg-violet-100/80" },
+        ].map(({ icon: Icon, label, value, color, bg }) => (
+          <Card key={label} className="p-5 flex items-center gap-4">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${bg} ${color}`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-muted">{label}</p>
+              <p className="text-xl font-extrabold text-foreground">{value}</p>
+            </div>
+          </Card>
+        ))}
       </div>
 
-      {/* Series progress list */}
+      {/* ── Series progress list ──────────────────────────────── */}
       <div className="space-y-4">
-        <h2 className="text-base font-semibold text-foreground">Series Progress</h2>
+        <div className="flex items-center gap-2 mb-2">
+          <TrendingUp className="w-4 h-4 text-primary" />
+          <h2 className="text-base font-bold text-foreground">Series Progress</h2>
+        </div>
+
         {series.map((s) => {
           const modulesPct = s.totalModules > 0 ? Math.round((s.completedModules / s.totalModules) * 100) : 0;
-          const videosPct = s.totalVideos > 0 ? Math.round((s.watchedVideos / s.totalVideos) * 100) : 0;
+          const videosPct  = s.totalVideos  > 0 ? Math.round((s.watchedVideos  / s.totalVideos)  * 100) : 0;
           const isComplete = s.completedModules === s.totalModules && s.totalModules > 0;
 
           return (
-            <div key={s.id} className="bg-card rounded-xl border border-border p-5 space-y-4">
+            <Card key={s.id} className="p-5 space-y-4">
+              {/* Row 1: title + pct */}
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-foreground truncate">{s.title}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm font-bold text-foreground truncate">{s.title}</h3>
                     {isComplete && (
-                      <span className="shrink-0 inline-flex items-center gap-1 text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-medium">
+                      <span className="shrink-0 inline-flex items-center gap-1 text-xs bg-emerald-100/80 text-emerald-700 border border-emerald-200/60 px-2 py-0.5 rounded-full font-medium backdrop-blur-sm">
                         <CheckCircle2 className="w-3 h-3" /> Complete
                       </span>
                     )}
@@ -167,32 +168,27 @@ export default function ProgressPage(): React.ReactNode {
                     </p>
                   )}
                 </div>
-                <span className="shrink-0 text-lg font-bold text-foreground">{modulesPct}%</span>
+                <span className="shrink-0 text-lg font-extrabold text-primary">{modulesPct}%</span>
               </div>
 
-              {/* Module progress bar */}
-              <div className="space-y-1">
+              {/* Module progress */}
+              <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-muted">
                   <span>Modules</span>
-                  <span>{s.completedModules} / {s.totalModules}</span>
+                  <span className="font-medium text-foreground">{s.completedModules} / {s.totalModules}</span>
                 </div>
-                <div className="h-2 bg-muted-bg rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all duration-500"
-                    style={{ width: `${modulesPct}%` }}
-                  />
-                </div>
+                <ProgressBar value={modulesPct} size="sm" />
               </div>
 
-              {/* Videos progress bar */}
-              <div className="space-y-1">
+              {/* Video progress */}
+              <div className="space-y-1.5">
                 <div className="flex justify-between text-xs text-muted">
                   <span>Videos watched</span>
-                  <span>{s.watchedVideos} / {s.totalVideos}</span>
+                  <span className="font-medium text-foreground">{s.watchedVideos} / {s.totalVideos}</span>
                 </div>
-                <div className="h-2 bg-muted-bg rounded-full overflow-hidden">
+                <div className="h-1.5 bg-white/40 backdrop-blur-sm rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-info rounded-full transition-all duration-500"
+                    className="h-full rounded-full bg-violet-400 transition-all duration-700"
                     style={{ width: `${videosPct}%` }}
                   />
                 </div>
@@ -200,43 +196,19 @@ export default function ProgressPage(): React.ReactNode {
 
               {/* Exam stats */}
               {(s.examsPassed + s.examsFailed) > 0 && (
-                <div className="flex items-center gap-4 text-xs">
-                  <span className="flex items-center gap-1 text-success">
+                <div className="flex items-center gap-4 text-xs pt-1 border-t border-white/40">
+                  <span className="flex items-center gap-1 text-emerald-600 font-medium">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    {s.examsPassed} exams passed
+                    {s.examsPassed} exam{s.examsPassed !== 1 ? "s" : ""} passed
                   </span>
                   {s.examsFailed > 0 && (
-                    <span className="text-danger">{s.examsFailed} failed</span>
+                    <span className="text-rose-500 font-medium">{s.examsFailed} failed</span>
                   )}
                 </div>
               )}
-            </div>
+            </Card>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  bg,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  bg: string;
-}): React.ReactNode {
-  return (
-    <div className="bg-card rounded-xl border border-border p-4 flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-lg ${bg} flex items-center justify-center shrink-0`}>
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs text-muted truncate">{label}</p>
-        <p className="text-xl font-bold text-foreground">{value}</p>
       </div>
     </div>
   );

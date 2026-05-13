@@ -1,4 +1,4 @@
-// src/app/(admin)/admin/content/components/VideoUploadModal.tsx
+﻿// src/app/(frontend)/(admin)/admin/content/components/VideoUploadModal.tsx
 "use client";
 
 import { useRef, useState } from "react";
@@ -33,10 +33,12 @@ export default function VideoUploadModal({ isOpen, onClose, modules, onSuccess }
   const [dragOver, setDragOver]   = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
+  const [phase, setPhase]         = useState<"idle" | "uploading" | "saving">("idle");
 
   function reset() {
     setTitle(""); setDesc(""); setModuleId(""); setOrder("1");
     setFile(null); setDragOver(false); setUploading(false); setUploadPct(0);
+    setPhase("idle");
   }
 
   function handleClose() {
@@ -64,42 +66,72 @@ export default function VideoUploadModal({ isOpen, onClose, modules, onSuccess }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim())  { error("Missing title", "Please enter a video title."); return; }
-    if (!moduleId)      { error("Missing module", "Please select a module."); return; }
-    if (!file)          { error("No file selected", "Please upload a video file."); return; }
+    if (!title.trim()) { error("Missing title", "Please enter a video title."); return; }
+    if (!moduleId)     { error("Missing module", "Please select a module."); return; }
+    if (!file)         { error("No file selected", "Please upload a video file."); return; }
 
     setUploading(true);
     setUploadPct(0);
+    setPhase("uploading");
 
     try {
+      // 1ï¸âƒ£ Get signed upload params from our server
+      const signRes = await fetch("/api/videos/sign", { method: "POST" });
+      if (!signRes.ok) throw new Error("Could not get upload credentials.");
+      const { data: signData } = await signRes.json() as {
+        data: { timestamp: number; signature: string; folder: string; apiKey: string; cloudName: string };
+      };
+
+      // 2ï¸âƒ£ Upload file directly to Cloudinary (browser â†’ Cloudinary)
       const form = new FormData();
-      form.append("title",       title.trim());
-      form.append("description", description.trim());
-      form.append("moduleId",    moduleId);
-      form.append("order",       order);
-      form.append("video",       file);
+      form.append("file",          file);
+      form.append("api_key",       signData.apiKey);
+      form.append("timestamp",     String(signData.timestamp));
+      form.append("signature",     signData.signature);
+      form.append("folder",        signData.folder);
+      form.append("resource_type", "video");
 
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener("progress", (ev) => {
-        if (ev.lengthComputable) setUploadPct(Math.round((ev.loaded / ev.total) * 100));
-      });
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${signData.cloudName}/video/upload`;
 
-      await new Promise<void>((resolve, reject) => {
-        xhr.open("POST", "/api/videos");
-        xhr.onload  = () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else {
-            try {
-              const body = JSON.parse(xhr.responseText);
-              reject(new Error(body.error ?? "Upload failed"));
-            } catch {
-              reject(new Error("Upload failed"));
+      const uploadResult = await new Promise<{ secure_url: string; public_id: string; duration?: number }>(
+        (resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.upload.addEventListener("progress", (ev) => {
+            if (ev.lengthComputable) setUploadPct(Math.round((ev.loaded / ev.total) * 100));
+          });
+          xhr.open("POST", cloudinaryUrl);
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(JSON.parse(xhr.responseText) as { secure_url: string; public_id: string; duration?: number });
+            } else {
+              reject(new Error("Cloudinary upload failed."));
             }
-          }
-        };
-        xhr.onerror = () => reject(new Error("Network error"));
-        xhr.send(form);
+          };
+          xhr.onerror = () => reject(new Error("Network error during upload."));
+          xhr.send(form);
+        }
+      );
+
+      // 3ï¸âƒ£ Save metadata to our database
+      setPhase("saving");
+      const saveRes = await fetch("/api/videos", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title:              title.trim(),
+          description:        description.trim() || undefined,
+          moduleId,
+          order:              parseInt(order, 10) || 1,
+          videoUrl:           uploadResult.secure_url,
+          cloudinaryPublicId: uploadResult.public_id,
+          durationSeconds:    Math.round(uploadResult.duration ?? 0),
+        }),
       });
+
+      if (!saveRes.ok) {
+        const body = await saveRes.json() as { error?: string };
+        throw new Error(body.error ?? "Failed to save video.");
+      }
 
       success("Video uploaded", `"${title}" has been added successfully.`);
       reset();
@@ -109,8 +141,14 @@ export default function VideoUploadModal({ isOpen, onClose, modules, onSuccess }
       error("Upload failed", err instanceof Error ? err.message : "Please try again.");
     } finally {
       setUploading(false);
+      setPhase("idle");
     }
   }
+
+  const buttonLabel =
+    phase === "uploading" ? `Uploading ${uploadPct}%` :
+    phase === "saving"    ? "Savingâ€¦" :
+    "Upload Video";
 
   return (
     <Modal
@@ -121,9 +159,7 @@ export default function VideoUploadModal({ isOpen, onClose, modules, onSuccess }
       footer={
         <>
           <Button variant="outline" onClick={handleClose} disabled={uploading}>Cancel</Button>
-          <Button onClick={handleSubmit} loading={uploading}>
-            {uploading ? `Uploading ${uploadPct}%` : "Upload Video"}
-          </Button>
+          <Button onClick={handleSubmit} loading={uploading}>{buttonLabel}</Button>
         </>
       }
     >
@@ -134,20 +170,14 @@ export default function VideoUploadModal({ isOpen, onClose, modules, onSuccess }
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           onClick={() => !file && fileRef.current?.click()}
-          className={`
-            relative rounded-xl border-2 border-dashed transition-colors cursor-pointer
-            flex flex-col items-center justify-center gap-3 py-8
-            ${dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}
-            ${file ? "cursor-default" : ""}
-          `}
+          className={[
+            "relative rounded-xl border-2 border-dashed transition-colors",
+            "flex flex-col items-center justify-center gap-3 py-8",
+            dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+            file ? "cursor-default" : "cursor-pointer",
+          ].join(" ")}
         >
-          <input
-            ref={fileRef}
-            type="file"
-            accept="video/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
+          <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={handleFileChange} />
 
           {file ? (
             <div className="flex flex-col items-center gap-2 px-4 text-center">
@@ -171,18 +201,14 @@ export default function VideoUploadModal({ isOpen, onClose, modules, onSuccess }
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-foreground">Drop your video here</p>
-                <p className="text-xs text-muted mt-0.5">or click to browse — MP4, MOV, WEBM accepted</p>
+                <p className="text-xs text-muted mt-0.5">or click to browse â€” MP4, MOV, WEBM accepted</p>
               </div>
             </>
           )}
 
-          {/* Upload progress bar */}
-          {uploading && (
+          {phase === "uploading" && (
             <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-border rounded-b-xl overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-150"
-                style={{ width: `${uploadPct}%` }}
-              />
+              <div className="h-full bg-primary transition-all duration-150" style={{ width: `${uploadPct}%` }} />
             </div>
           )}
         </div>
@@ -214,18 +240,18 @@ export default function VideoUploadModal({ isOpen, onClose, modules, onSuccess }
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Module <span className="text-danger">*</span></label>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">
+              Module <span className="text-danger">*</span>
+            </label>
             <select
               value={moduleId}
               onChange={(e) => setModuleId(e.target.value)}
               className="w-full h-9 rounded-lg border border-border bg-card text-foreground text-sm px-3 focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-colors"
               required
             >
-              <option value="">Select a module…</option>
+              <option value="">Select a moduleâ€¦</option>
               {modules.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.seriesTitle} › {m.title}
-                </option>
+                <option key={m.id} value={m.id}>{m.seriesTitle} â€º {m.title}</option>
               ))}
             </select>
           </div>

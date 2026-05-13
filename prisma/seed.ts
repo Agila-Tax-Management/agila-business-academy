@@ -6,7 +6,8 @@ import { randomBytes, scrypt as scryptCallback } from "crypto";
 
 function scryptAsync(password: string, salt: string, keylen: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    scryptCallback(password, salt, keylen, { N: 16384, r: 8, p: 1 }, (err, key) => {
+    // Must match @better-auth/utils/password exactly: N=16384, r=16, p=1, dkLen=64
+    scryptCallback(password, salt, keylen, { N: 16384, r: 16, p: 1, maxmem: 128 * 16384 * 16 * 2 }, (err, key) => {
       if (err) reject(err);
       else resolve(key);
     });
@@ -22,7 +23,7 @@ const prisma = new PrismaClient({ adapter });
 // ---------------------------------------------------------------------------
 async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString("hex");
-  const hash = await scryptAsync(password, salt, 64);
+  const hash = await scryptAsync(password.normalize("NFKC"), salt, 64);
   return `${salt}:${hash.toString("hex")}`;
 }
 

@@ -3,13 +3,19 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   onClick?: () => void;
+  hover?: boolean;
 }
 
-export default function Card({ children, className = "", onClick }: CardProps): React.ReactNode {
+export default function Card({ children, className = "", onClick, hover }: CardProps): React.ReactNode {
+  const isClickable = onClick !== undefined || hover;
   return (
     <div
       onClick={onClick}
-      className={`bg-card text-card-foreground rounded-xl border border-border shadow-sm ${onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""} ${className}`}
+      className={`rounded-2xl glass text-card-foreground ${
+        isClickable
+          ? "cursor-pointer hover:shadow-[0_8px_32px_rgba(99,102,241,0.18)] hover:-translate-y-0.5 hover:bg-white/85 transition-all duration-200"
+          : ""
+      } ${className}`}
     >
       {children}
     </div>

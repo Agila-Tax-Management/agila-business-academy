@@ -40,18 +40,18 @@ export default function Modal({ isOpen, onClose, title, children, size = "md", f
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-md" onClick={onClose} />
 
       {/* Panel */}
-      <div className={`relative w-full ${sizes[size]} bg-card rounded-2xl shadow-xl border border-border flex flex-col max-h-[90vh]`}>
+      <div className={`relative w-full ${sizes[size]} glass-strong rounded-2xl shadow-2xl flex flex-col max-h-[90vh]`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/30 shrink-0">
           <h2 className="text-base font-semibold text-foreground">{title}</h2>
           <button
             onClick={onClose}
-            className="text-muted hover:text-foreground transition-colors rounded-lg p-1 hover:bg-muted-bg"
+            className="text-muted hover:text-foreground transition-colors rounded-xl p-1.5 hover:bg-white/60"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -62,7 +62,7 @@ export default function Modal({ isOpen, onClose, title, children, size = "md", f
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border shrink-0">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/30 shrink-0">
             {footer}
           </div>
         )}

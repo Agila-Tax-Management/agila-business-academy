@@ -1,22 +1,21 @@
-// src/app/(auth)/sign-in/page.tsx
+// src/app/(frontend)/(auth)/sign-in/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useToast } from "@/context/ToastContext";
-import Button from "@/components/UI/Button";
-import Input from "@/components/UI/Input";
 
 export default function SignInPage(): React.ReactNode {
   const router = useRouter();
   const { error } = useToast();
 
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading]   = useState(false);
+  const [email, setEmail]         = useState("");
+  const [password, setPassword]   = useState("");
+  const [rememberMe, setRemember] = useState(false);
+  const [showPass, setShowPass]   = useState(false);
+  const [loading, setLoading]     = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,53 +36,103 @@ export default function SignInPage(): React.ReactNode {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-foreground mb-1">Welcome back</h1>
-      <p className="text-sm text-muted mb-8">Sign in to your Agila Academy account</p>
+      {/* Heading */}
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">Login Account</h1>
+      <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+        Enter your credentials to access your training dashboard.
+      </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input
-          label="Email address"
-          type="email"
-          placeholder="you@agila.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          leftIcon={<Mail className="w-4 h-4" />}
-          required
-          autoComplete="email"
-        />
+        {/* Email */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Email ID
+          </label>
+          <div className="relative">
+            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 rounded-full" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@agila.ph"
+              required
+              autoComplete="email"
+              className="w-full pl-4 pr-3 py-3 bg-transparent border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm placeholder:text-gray-300 focus:outline-none focus:border-blue-500 transition-colors"
+            />
+          </div>
+        </div>
 
-        <Input
-          label="Password"
-          type={showPass ? "text" : "password"}
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          leftIcon={<Lock className="w-4 h-4" />}
-          rightIcon={
+        {/* Password */}
+        <div className="flex flex-col gap-1 mt-2">
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Password
+          </label>
+          <div className="relative">
+            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 rounded-full" />
+            <input
+              type={showPass ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+              className="w-full pl-4 pr-10 py-3 bg-transparent border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm placeholder:text-gray-300 focus:outline-none focus:border-blue-500 transition-colors"
+            />
             <button
               type="button"
               onClick={() => setShowPass((v) => !v)}
-              className="pointer-events-auto text-muted hover:text-foreground transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
             >
               {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
-          }
-          required
-          autoComplete="current-password"
-        />
+          </div>
+        </div>
 
-        <div className="flex items-center justify-end">
-          <a href="/forgot-password" className="text-xs text-primary hover:underline">
-            Forgot password?
+        {/* Keep me signed in + Already a member */}
+        <div className="flex items-center justify-between mt-1">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <div className="relative w-4 h-4">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="w-4 h-4 rounded border border-gray-300 dark:border-gray-600 peer-checked:bg-blue-500 peer-checked:border-blue-500 transition-colors flex items-center justify-center">
+                {rememberMe && (
+                  <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+            </div>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Keep me signed in</span>
+          </label>
+          <a href="/forgot-password" className="text-xs text-blue-500 hover:text-blue-600 hover:underline transition-colors">
+            Already a member?
           </a>
         </div>
 
-        <Button type="submit" loading={loading} size="lg" className="w-full mt-1">
-          Sign In
-        </Button>
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="mt-4 w-full py-3.5 rounded-full text-white text-sm font-bold tracking-wider uppercase transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          style={{ background: "linear-gradient(90deg, #1d4ed8 0%, #0ea5e9 100%)" }}
+        >
+          {loading ? (
+            <span className="inline-flex items-center gap-2 justify-center">
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+              </svg>
+              Signing in…
+            </span>
+          ) : "Sign In"}
+        </button>
       </form>
 
-      <p className="text-xs text-muted text-center mt-8">
+      <p className="text-xs text-gray-400 text-center mt-8">
         For account issues, contact your HR administrator.
       </p>
     </div>

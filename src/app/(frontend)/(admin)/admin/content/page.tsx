@@ -161,15 +161,15 @@ export default function ContentPage(): React.ReactNode {
 
       {/* Tabs + Search */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
-        <div className="flex border border-border rounded-lg overflow-hidden shrink-0">
+        <div className="flex border border-white/40 rounded-xl overflow-hidden shrink-0">
           {TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
                 tab === t.key
-                  ? "bg-primary text-white"
-                  : "bg-card text-muted hover:text-foreground"
+                  ? "gradient-bg text-white"
+                  : "bg-white/40 text-muted hover:text-foreground hover:bg-white/60"
               }`}
             >
               {t.icon}
@@ -209,7 +209,7 @@ export default function ContentPage(): React.ReactNode {
                   Array.from({ length: 4 }).map((_, i) => (
                     <tr key={i}>
                       {Array.from({ length: 6 }).map((__, j) => (
-                        <td key={j} className="px-5 py-3"><div className="h-4 bg-muted-bg rounded animate-pulse" /></td>
+                        <td key={j} className="px-5 py-3"><div className="h-4 bg-white/40 rounded animate-pulse" /></td>
                       ))}
                     </tr>
                   ))
@@ -237,10 +237,10 @@ export default function ContentPage(): React.ReactNode {
                         <MoreVertical className="w-4 h-4" />
                       </button>
                       {openMenu === s.id && (
-                        <div className="absolute right-4 top-10 z-20 w-36 bg-card border border-border rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
+                        <div className="absolute right-4 top-10 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => { setEditingSeries(s); setShowSeriesModal(true); setOpenMenu(null); }}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted-bg transition-colors"
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-white/60 transition-colors"
                           >
                             <Pencil className="w-3.5 h-3.5" /> Edit
                           </button>
@@ -301,9 +301,9 @@ export default function ContentPage(): React.ReactNode {
                         <MoreVertical className="w-4 h-4" />
                       </button>
                       {openMenu === m.id && (
-                        <div className="absolute right-4 top-10 z-20 w-36 bg-card border border-border rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => { setEditingModule(m); setShowModuleModal(true); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted-bg transition-colors"><Pencil className="w-3.5 h-3.5" />Edit</button>
-                          <button onClick={() => { deleteModule(m.id, m.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-muted-bg transition-colors"><Trash2 className="w-3.5 h-3.5" />Delete</button>
+                        <div className="absolute right-4 top-10 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => { setEditingModule(m); setShowModuleModal(true); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-white/60 transition-colors"><Pencil className="w-3.5 h-3.5" />Edit</button>
+                          <button onClick={() => { deleteModule(m.id, m.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-white/60 transition-colors"><Trash2 className="w-3.5 h-3.5" />Delete</button>
                         </div>
                       )}
                     </td>
@@ -361,8 +361,8 @@ export default function ContentPage(): React.ReactNode {
                         <MoreVertical className="w-4 h-4" />
                       </button>
                       {openMenu === v.id && (
-                        <div className="absolute right-4 top-10 z-20 w-36 bg-card border border-border rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => { deleteVideo(v.id, v.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-muted-bg transition-colors"><Trash2 className="w-3.5 h-3.5" />Delete</button>
+                        <div className="absolute right-4 top-10 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => { deleteVideo(v.id, v.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-white/60 transition-colors"><Trash2 className="w-3.5 h-3.5" />Delete</button>
                         </div>
                       )}
                     </td>

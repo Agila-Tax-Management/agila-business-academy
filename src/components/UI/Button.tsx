@@ -2,27 +2,28 @@
 import { forwardRef } from "react";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost" | "danger" | "outline";
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "outline" | "glass";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
   children: React.ReactNode;
 }
 
 const base =
-  "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none";
+  "inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:pointer-events-none";
 
 const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  primary:   "bg-primary text-primary-foreground hover:bg-[var(--primary-hover)]",
-  secondary: "bg-muted-bg text-foreground hover:bg-border",
-  ghost:     "text-foreground hover:bg-muted-bg",
-  danger:    "bg-danger text-white hover:opacity-90",
-  outline:   "border border-border text-foreground hover:bg-muted-bg",
+  primary:   "gradient-bg text-white shadow-[0_4px_14px_rgba(99,102,241,0.40)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.50)] hover:-translate-y-0.5",
+  secondary: "bg-white/80 backdrop-blur-sm text-foreground border border-white/60 hover:bg-white/95 shadow-sm",
+  ghost:     "text-foreground hover:bg-white/60 backdrop-blur-sm",
+  danger:    "bg-danger text-white hover:opacity-90 shadow-sm",
+  outline:   "border border-border text-foreground hover:bg-white/60 backdrop-blur-sm",
+  glass:     "glass text-foreground hover:bg-white/80",
 };
 
 const sizes: Record<NonNullable<ButtonProps["size"]>, string> = {
   sm: "text-xs px-3 py-1.5 h-8",
   md: "text-sm px-4 py-2 h-9",
-  lg: "text-sm px-5 py-2.5 h-11",
+  lg: "text-sm px-6 py-3 h-11",
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(

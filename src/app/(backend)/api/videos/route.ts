@@ -1,111 +1,93 @@
 // src/app/(backend)/api/videos/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import prisma from "@/lib/db";
+import { z } from "zod";
 
-// ---------------------------------------------------------------------------
-// Mock data — replace body of GET with real Prisma queries once DB is ready
-// ---------------------------------------------------------------------------
-const MOCK_VIDEOS = [
-  {
-    id: "seed-vid-welcome",
-    moduleId: "seed-mod-orientation",
-    moduleTitle: "Company Orientation",
-    seriesTitle: "New Employee Onboarding",
-    title: "Welcome to Agila",
-    description: "A message from the CEO and an overview of what Agila does.",
-    durationSeconds: 420,
-    order: 1,
-    videoUrl: "https://example.com/videos/welcome-to-agila.mp4",
-  },
-  {
-    id: "seed-vid-orgchart",
-    moduleId: "seed-mod-orientation",
-    moduleTitle: "Company Orientation",
-    seriesTitle: "New Employee Onboarding",
-    title: "Organisational Structure",
-    description: "Departments, reporting lines, and key contacts.",
-    durationSeconds: 310,
-    order: 2,
-    videoUrl: "https://example.com/videos/org-chart.mp4",
-  },
-  {
-    id: "seed-vid-leave",
-    moduleId: "seed-mod-hr",
-    moduleTitle: "HR Policies & Benefits",
-    seriesTitle: "New Employee Onboarding",
-    title: "Leave & Attendance Policy",
-    description: "How to file leave requests, attendance rules, and tardiness policies.",
-    durationSeconds: 540,
-    order: 1,
-    videoUrl: "https://example.com/videos/leave-policy.mp4",
-  },
-  {
-    id: "seed-vid-conduct",
-    moduleId: "seed-mod-hr",
-    moduleTitle: "HR Policies & Benefits",
-    seriesTitle: "New Employee Onboarding",
-    title: "Code of Conduct",
-    description: "Expected behaviour, anti-harassment policy, and grievance procedures.",
-    durationSeconds: 480,
-    order: 2,
-    videoUrl: "https://example.com/videos/code-of-conduct.mp4",
-  },
-  {
-    id: "seed-vid-hazards",
-    moduleId: "seed-mod-safety",
-    moduleTitle: "Workplace Safety Basics",
-    seriesTitle: "Safety & Compliance",
-    title: "Identifying Workplace Hazards",
-    description: "Common hazards in the workplace and how to report them.",
-    durationSeconds: 390,
-    order: 1,
-    videoUrl: "https://example.com/videos/hazard-identification.mp4",
-  },
-  {
-    id: "seed-vid-ppe",
-    moduleId: "seed-mod-safety",
-    moduleTitle: "Workplace Safety Basics",
-    seriesTitle: "Safety & Compliance",
-    title: "Personal Protective Equipment",
-    description: "Correct use and maintenance of PPE for various job roles.",
-    durationSeconds: 350,
-    order: 2,
-    videoUrl: "https://example.com/videos/ppe-usage.mp4",
-  },
-  {
-    id: "seed-vid-fire",
-    moduleId: "seed-mod-emergency",
-    moduleTitle: "Emergency Response",
-    seriesTitle: "Safety & Compliance",
-    title: "Fire Safety & Evacuation",
-    description: "Fire drill procedures, exit routes, and assembly points.",
-    durationSeconds: 460,
-    order: 1,
-    videoUrl: "https://example.com/videos/fire-safety.mp4",
-  },
-  {
-    id: "seed-vid-firstaid",
-    moduleId: "seed-mod-emergency",
-    moduleTitle: "Emergency Response",
-    seriesTitle: "Safety & Compliance",
-    title: "Basic First Aid",
-    description: "CPR, wound care, and when to call emergency services.",
-    durationSeconds: 600,
-    order: 2,
-    videoUrl: "https://example.com/videos/first-aid.mp4",
-  },
-  {
-    id: "seed-vid-atms-intro",
-    moduleId: "seed-mod-atms",
-    moduleTitle: "ATMS Overview",
-    seriesTitle: "IT & Systems Basics",
-    title: "Navigating the ATMS Dashboard",
-    description: "A guided tour of the main ATMS screens and key features.",
-    durationSeconds: 520,
-    order: 1,
-    videoUrl: "https://example.com/videos/atms-intro.mp4",
-  },
-];
-
+// GET /api/videos — returns all videos with module + series info
 export async function GET(): Promise<NextResponse> {
-  return NextResponse.json({ data: MOCK_VIDEOS });
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const videos = await prisma.video.findMany({
+      orderBy: [
+        { module: { series: { order: "asc" } } },
+        { module: { order: "asc" } },
+        { order: "asc" },
+      ],
+      include: {
+        module: { include: { series: true } },
+      },
+    });
+
+    return NextResponse.json({
+      data: videos.map((v) => ({
+        id:              v.id,
+        moduleId:        v.moduleId,
+        moduleTitle:     v.module.title,
+        seriesTitle:     v.module.series.title,
+        title:           v.title,
+        description:     v.description,
+        durationSeconds: v.durationSeconds,
+        order:           v.order,
+        videoUrl:        v.videoUrl,
+      })),
+    });
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch videos" }, { status: 500 });
+  }
 }
+
+// ── POST /api/videos ──────────────────────────────────────────────────────────
+// Saves video metadata to DB after the client has uploaded the file directly to
+// Cloudinary. Expects JSON body with the Cloudinary response fields.
+
+const createVideoSchema = z.object({
+  title:             z.string().min(1).max(255),
+  description:       z.string().optional(),
+  moduleId:          z.string().min(1),
+  order:             z.number().int().min(1).default(1),
+  videoUrl:          z.string().url(),
+  cloudinaryPublicId: z.string().min(1),
+  durationSeconds:   z.number().int().min(0).default(0),
+});
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { role } = session.user as { role?: string };
+  if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const parsed = createVideoSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Validation failed" }, { status: 422 });
+  }
+
+  const { title, description, moduleId, order, videoUrl, cloudinaryPublicId, durationSeconds } = parsed.data;
+
+  try {
+    const module = await prisma.module.findUnique({ where: { id: moduleId } });
+    if (!module) return NextResponse.json({ error: "Module not found" }, { status: 404 });
+
+    const video = await prisma.video.create({
+      data: { title, description, moduleId, order, videoUrl, cloudinaryPublicId, durationSeconds },
+    });
+
+    return NextResponse.json({ data: video }, { status: 201 });
+  } catch {
+    return NextResponse.json({ error: "Failed to save video" }, { status: 500 });
+  }
+}
+

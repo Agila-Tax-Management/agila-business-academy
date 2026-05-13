@@ -1,8 +1,8 @@
-// src/app/(learner)/certificates/page.tsx
+// src/app/(frontend)/(learner)/certificates/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award, Download, Calendar, BadgeCheck } from "lucide-react";
+import { Award, Download, Calendar, BadgeCheck, Trophy } from "lucide-react";
 
 interface Certificate {
   id: string;
@@ -35,55 +35,57 @@ export default function CertificatesPage(): React.ReactNode {
 
   if (loading) {
     return (
-      <div className="p-6 lg:p-8 space-y-6">
-        <div className="h-8 w-48 bg-muted-bg animate-pulse rounded-lg" />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-44 bg-card rounded-xl animate-pulse" />
-          ))}
+      <div className="p-6 lg:p-8 space-y-6 animate-fade-up">
+        <div className="h-8 w-48 skeleton rounded-xl" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-52 skeleton rounded-2xl" />)}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8 space-y-8">
-      {/* Page header */}
+    <div className="p-6 lg:p-8 space-y-8 max-w-5xl mx-auto animate-fade-up">
+
+      {/* ── Header ──────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Certificates</h1>
+        <h1 className="text-2xl font-extrabold text-foreground">Certificates</h1>
         <p className="text-muted text-sm mt-1">
-          Certificates are issued when you complete all modules and pass the final exam of a series.
+          Earned by completing all modules and passing the final exam of a series.
         </p>
       </div>
 
+      {/* ── Empty state ─────────────────────────────────────── */}
       {certificates.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-full bg-muted-bg flex items-center justify-center mb-4">
-            <Award className="w-8 h-8 text-muted" />
+          <div className="w-20 h-20 rounded-3xl glass flex items-center justify-center mb-5 shadow-[0_4px_24px_rgba(99,102,241,0.12)]">
+            <Trophy className="w-9 h-9 text-primary" />
           </div>
-          <h3 className="text-base font-semibold text-foreground">No certificates yet</h3>
-          <p className="text-sm text-muted mt-1 max-w-xs">
+          <h3 className="text-base font-bold text-foreground mb-1">No certificates yet</h3>
+          <p className="text-sm text-muted max-w-xs">
             Complete a full series and pass all exams to earn your first certificate.
           </p>
         </div>
+
+      /* ── Certificate grid ─────────────────────────────────── */
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {certificates.map((cert) => (
             <div
               key={cert.id}
-              className="bg-card border border-border rounded-xl overflow-hidden flex flex-col"
+              className="glass-strong rounded-2xl overflow-hidden flex flex-col border border-white/50 shadow-[0_4px_24px_rgba(99,102,241,0.10)] hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(99,102,241,0.18)] transition-all duration-200"
             >
-              {/* Certificate header strip */}
-              <div className="bg-primary px-5 py-5 flex items-center justify-between">
+              {/* Header strip */}
+              <div className="gradient-bg px-5 py-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shadow">
                     <Award className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-white/70 text-[10px] uppercase tracking-widest font-semibold">
+                    <p className="text-white/70 text-[10px] uppercase tracking-widest font-bold">
                       Certificate of Completion
                     </p>
-                    <p className="text-white font-bold text-sm leading-tight mt-0.5">
+                    <p className="text-white font-extrabold text-sm leading-tight mt-0.5">
                       Agila Business Academy
                     </p>
                   </div>
@@ -91,23 +93,23 @@ export default function CertificatesPage(): React.ReactNode {
                 <BadgeCheck className="w-6 h-6 text-white/80" />
               </div>
 
-              {/* Certificate body */}
+              {/* Body */}
               <div className="px-5 py-4 flex-1 space-y-3">
-                <h3 className="text-sm font-semibold text-foreground leading-snug">{cert.seriesTitle}</h3>
+                <h3 className="text-sm font-bold text-foreground leading-snug">{cert.seriesTitle}</h3>
                 <div className="flex items-center gap-1.5 text-xs text-muted">
                   <Calendar className="w-3.5 h-3.5" />
                   Issued {new Date(cert.issuedAt).toLocaleDateString("en-PH", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
+                    year: "numeric", month: "long", day: "numeric",
                   })}
                 </div>
-                <p className="text-xs text-muted font-mono">ID: {cert.credentialId}</p>
+                <p className="text-xs text-muted font-mono bg-white/40 px-2 py-1 rounded-lg inline-block">
+                  {cert.credentialId}
+                </p>
               </div>
 
-              {/* Download button */}
+              {/* Download */}
               <div className="px-5 pb-4">
-                <button className="w-full flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium py-2 rounded-lg transition-colors">
+                <button className="w-full flex items-center justify-center gap-2 glass text-primary text-sm font-semibold py-2.5 rounded-xl hover:bg-primary hover:text-white transition-all duration-150 border border-primary/20">
                   <Download className="w-4 h-4" />
                   Download PDF
                 </button>
