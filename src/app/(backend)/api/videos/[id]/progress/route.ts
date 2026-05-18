@@ -6,8 +6,9 @@ import { headers } from "next/headers";
 import prisma from "@/lib/db";
 
 const progressSchema = z.object({
-  watchedSeconds: z.number().int().nonnegative(),
-  durationSeconds: z.number().int().nonnegative(),
+  watchedSeconds:  z.number().int().nonnegative().optional(),
+  durationSeconds: z.number().int().nonnegative().optional(),
+  complete:        z.boolean().optional(),
 });
 
 // POST /api/videos/[id]/progress — upsert VideoProgress; marks completedAt at ≥90%
@@ -32,13 +33,19 @@ export async function POST(
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { watchedSeconds, durationSeconds } = parsed.data;
+  const { watchedSeconds, durationSeconds, complete } = parsed.data;
 
   try {
     const video = await prisma.video.findUnique({ where: { id }, select: { id: true } });
     if (!video) return NextResponse.json({ error: "Video not found" }, { status: 404 });
 
-    const isComplete = durationSeconds > 0 && watchedSeconds / durationSeconds >= 0.9;
+    const isComplete =
+      complete === true ||
+      (durationSeconds != null && durationSeconds > 0 &&
+       watchedSeconds != null && watchedSeconds / durationSeconds >= 0.9);
+
+    const ws = watchedSeconds ?? 0;
+    const ds = durationSeconds ?? 1;
 
     const existing = await prisma.videoProgress.findUnique({
       where: { userId_videoId: { userId: session.user.id, videoId: id } },
@@ -49,13 +56,13 @@ export async function POST(
       create: {
         userId: session.user.id,
         videoId: id,
-        watchedSeconds,
-        durationSeconds,
+        watchedSeconds: ws,
+        durationSeconds: ds,
         completedAt: isComplete ? new Date() : null,
       },
       update: {
-        watchedSeconds: Math.max(watchedSeconds, existing?.watchedSeconds ?? 0),
-        durationSeconds,
+        watchedSeconds: Math.max(ws, existing?.watchedSeconds ?? 0),
+        durationSeconds: ds,
         ...(isComplete && !existing?.completedAt ? { completedAt: new Date() } : {}),
       },
     });

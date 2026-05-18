@@ -6,16 +6,23 @@ enum Role {
   EMPLOYEE
 }
 
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  position      String?
-  role          Role      @default(EMPLOYEE)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique
+  emailVerified  Boolean        @default(false)
+  image          String?
+  position       String?
+  role           Role           @default(EMPLOYEE)
+  approvalStatus ApprovalStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   sessions      Session[]
   accounts      Account[]

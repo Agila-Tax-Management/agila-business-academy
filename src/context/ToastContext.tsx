@@ -34,11 +34,11 @@ const icons: Record<ToastType, React.ReactNode> = {
   warning: <AlertTriangle className="w-5 h-5 text-warning" />,
 };
 
-const borders: Record<ToastType, string> = {
-  success: "border-l-success",
-  error: "border-l-danger",
-  info: "border-l-info",
-  warning: "border-l-warning",
+const styles: Record<ToastType, { border: string; bg: string }> = {
+  success: { border: "border-l-success", bg: "bg-success/10" },
+  error:   { border: "border-l-danger",  bg: "bg-danger/10"  },
+  info:    { border: "border-l-info",    bg: "bg-info/10"    },
+  warning: { border: "border-l-warning", bg: "bg-warning/10" },
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }): React.ReactNode {
@@ -66,7 +66,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`flex items-start gap-3 bg-card rounded-lg shadow-lg border border-border border-l-4 ${borders[t.type]} p-4 animate-in slide-in-from-right-4`}
+            className={`flex items-start gap-3 ${styles[t.type].bg} rounded-xl shadow-lg border border-l-4 ${styles[t.type].border} p-4 animate-fade-up`}
           >
             <div className="mt-0.5 shrink-0">{icons[t.type]}</div>
             <div className="flex-1 min-w-0">

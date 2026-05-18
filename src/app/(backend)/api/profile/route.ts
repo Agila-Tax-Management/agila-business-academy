@@ -6,7 +6,8 @@ import { headers } from "next/headers";
 import prisma from "@/lib/db";
 
 const updateProfileSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100).trim(),
+  name:     z.string().min(1, "Name is required").max(100).trim(),
+  position: z.string().max(100).trim().optional(),
 });
 
 // PATCH /api/profile — update the current user's display name
@@ -29,8 +30,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
   try {
     const user = await prisma.user.update({
       where: { id: session.user.id },
-      data: { name: parsed.data.name },
-      select: { id: true, name: true, image: true },
+      data: {
+        name:     parsed.data.name,
+        ...(parsed.data.position !== undefined && { position: parsed.data.position }),
+      },
+      select: { id: true, name: true, image: true, position: true },
     });
     return NextResponse.json({ data: user });
   } catch {

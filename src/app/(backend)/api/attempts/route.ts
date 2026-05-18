@@ -8,6 +8,7 @@ export interface AttemptItem {
   id: string;
   employeeName: string;
   employeeEmail: string;
+  employeeImage: string | null;
   examTitle: string;
   scope: "VIDEO" | "MODULE" | "SERIES";
   score: number;
@@ -29,7 +30,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     const attempts = await prisma.examAttempt.findMany({
       orderBy: { createdAt: "desc" },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { name: true, email: true, image: true } },
         exam: {
           select: {
             title: true,
@@ -61,6 +62,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
         id: a.id,
         employeeName: a.user.name,
         employeeEmail: a.user.email,
+        employeeImage: a.user.image ?? null,
         examTitle: a.exam.title,
         scope: a.exam.scope,
         score: a.score,

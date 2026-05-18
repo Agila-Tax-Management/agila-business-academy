@@ -201,7 +201,7 @@ export default function VideoUploadModal({ isOpen, onClose, modules, onSuccess }
               </div>
               <div className="text-center">
                 <p className="text-sm font-medium text-foreground">Drop your video here</p>
-                <p className="text-xs text-muted mt-0.5">or click to browse â€” MP4, MOV, WEBM accepted</p>
+                <p className="text-xs text-muted mt-0.5">or click to browse MP4, MOV, WEBM accepted</p>
               </div>
             </>
           )}
@@ -249,7 +249,7 @@ export default function VideoUploadModal({ isOpen, onClose, modules, onSuccess }
               className="w-full h-9 rounded-lg border border-border bg-card text-foreground text-sm px-3 focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-colors"
               required
             >
-              <option value="">Select a moduleâ€¦</option>
+              <option value="">Select a module</option>
               {modules.map((m) => (
                 <option key={m.id} value={m.id}>{m.seriesTitle} â€º {m.title}</option>
               ))}

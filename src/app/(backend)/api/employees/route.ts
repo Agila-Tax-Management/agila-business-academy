@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 export type EmployeeRole = "EMPLOYEE" | "ADMIN" | "SUPER_ADMIN";
+export type EmployeeApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export interface EmployeeItem {
   id: string;
@@ -13,6 +14,7 @@ export interface EmployeeItem {
   image: string | null;
   position: string | null;
   role: EmployeeRole;
+  approvalStatus: EmployeeApprovalStatus;
   enrolledSeries: number;
   completedSeries: number;
   lastLogin: string | null;
@@ -42,6 +44,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       image:           u.image ?? null,
       position:        u.position ?? null,
       role:            u.role as EmployeeRole,
+      approvalStatus:  u.approvalStatus as EmployeeApprovalStatus,
       enrolledSeries:  u._count.enrollments,
       completedSeries: u._count.seriesCompletions,
       lastLogin:       u.sessions[0]?.updatedAt.toISOString() ?? null,

@@ -4,7 +4,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Plus, Search, Upload, BookOpen, Layers, Video,
-  MoreVertical, Pencil, Trash2, ChevronRight,
+  MoreVertical, Pencil, Trash2, ChevronRight, Globe, Lock, Award,
+  Clock,
 } from "lucide-react";
 import Button from "@/components/UI/Button";
 import Badge from "@/components/UI/Badge";
@@ -143,15 +144,22 @@ export default function ContentPage(): React.ReactNode {
   const filteredModules = modules.filter((m) => m.title.toLowerCase().includes(search.toLowerCase()) || m.seriesTitle.toLowerCase().includes(search.toLowerCase()));
   const filteredVideos  = videos.filter((v)  => v.title.toLowerCase().includes(search.toLowerCase()) || v.moduleTitle.toLowerCase().includes(search.toLowerCase()));
 
+  const totalDuration = videos.reduce((acc, v) => acc + v.durationSeconds, 0);
+  function fmtHours(sec: number) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto" onClick={() => setOpenMenu(null)}>
-      {/* Page header */}
+
+      {/* ── Page header ──────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Content Management</h1>
           <p className="text-muted text-sm mt-1">Manage series, modules, and training videos.</p>
         </div>
-
         <div className="flex items-center gap-2">
           {tab === "series"  && <Button onClick={() => { setEditingSeries(null); setShowSeriesModal(true); }} size="sm"><Plus className="w-4 h-4" />New Series</Button>}
           {tab === "modules" && <Button onClick={() => { setEditingModule(null); setShowModuleModal(true); }} size="sm"><Plus className="w-4 h-4" />New Module</Button>}
@@ -159,8 +167,30 @@ export default function ContentPage(): React.ReactNode {
         </div>
       </div>
 
-      {/* Tabs + Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+      {/* ── Stats bar ─────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: "Series",  value: series.length,  icon: <BookOpen className="w-4 h-4" />, color: "text-violet-500", bg: "bg-violet-500/10" },
+          { label: "Modules", value: modules.length, icon: <Layers className="w-4 h-4" />,   color: "text-blue-500",   bg: "bg-blue-500/10"   },
+          { label: "Videos",  value: videos.length,  icon: <Video className="w-4 h-4" />,    color: "text-emerald-500",bg: "bg-emerald-500/10"},
+          { label: "Total Duration", value: loading ? "—" : fmtHours(totalDuration), icon: <Clock className="w-4 h-4" />, color: "text-amber-500", bg: "bg-amber-500/10" },
+        ].map((s) => (
+          <Card key={s.label} className="flex items-center gap-3 px-4 py-3">
+            <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center shrink-0 ${s.color}`}>
+              {s.icon}
+            </div>
+            <div>
+              <p className="text-xs text-muted">{s.label}</p>
+              <p className="text-lg font-bold text-foreground leading-tight">
+                {loading ? <span className="inline-block w-8 h-4 skeleton rounded" /> : s.value}
+              </p>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* ── Tabs + Search ──────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5">
         <div className="flex border border-white/40 rounded-xl overflow-hidden shrink-0">
           {TABS.map((t) => (
             <button
@@ -182,7 +212,7 @@ export default function ContentPage(): React.ReactNode {
         </div>
         <div className="flex-1 sm:max-w-xs">
           <Input
-            placeholder={`Search ${tab}â€¦`}
+            placeholder={`Search ${tab}…`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             leftIcon={<Search className="w-4 h-4" />}
@@ -190,198 +220,247 @@ export default function ContentPage(): React.ReactNode {
         </div>
       </div>
 
-      {/* â”€â”€ Series Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Series ────────────────────────────────────────────── */}
       {tab === "series" && (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border">
-                <tr>
-                  {["Series Title", "Modules", "Videos", "Public", "Certificate", ""].map((h) => (
-                    <th key={h} className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-5 py-3 whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {loading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <tr key={i}>
-                      {Array.from({ length: 6 }).map((__, j) => (
-                        <td key={j} className="px-5 py-3"><div className="h-4 bg-white/40 rounded animate-pulse" /></td>
-                      ))}
-                    </tr>
-                  ))
-                ) : filteredSeries.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center text-muted text-sm">
-                      No series found. Click <strong>New Series</strong> to create one.
-                    </td>
-                  </tr>
-                ) : filteredSeries.map((s) => (
-                  <tr key={s.id} className="hover:bg-muted-bg/50 transition-colors group">
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-foreground">{s.title}</p>
-                      {s.description && <p className="text-xs text-muted mt-0.5 line-clamp-1">{s.description}</p>}
-                    </td>
-                    <td className="px-5 py-3.5 text-muted">{s.moduleCount}</td>
-                    <td className="px-5 py-3.5 text-muted">{s.videoCount}</td>
-                    <td className="px-5 py-3.5"><Badge variant={s.isPublic ? "success" : "neutral"}>{s.isPublic ? "Yes" : "No"}</Badge></td>
-                    <td className="px-5 py-3.5"><Badge variant={s.requiresCertificate ? "primary" : "neutral"}>{s.requiresCertificate ? "Yes" : "No"}</Badge></td>
-                    <td className="px-5 py-3.5 relative">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === s.id ? null : s.id); }}
-                        className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-muted-bg transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      {openMenu === s.id && (
-                        <div className="absolute right-4 top-10 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => { setEditingSeries(s); setShowSeriesModal(true); setOpenMenu(null); }}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-white/60 transition-colors"
-                          >
-                            <Pencil className="w-3.5 h-3.5" /> Edit
-                          </button>
-                          <button
-                            onClick={() => { deleteSeries(s.id, s.title); setOpenMenu(null); }}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-muted-bg transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> Delete
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {loading ? (
+            <div className="divide-y divide-border">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-5 py-4">
+                  <div className="w-10 h-10 skeleton rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-4 skeleton rounded w-48" />
+                    <div className="h-3 skeleton rounded w-72" />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="h-6 w-16 skeleton rounded-full" />
+                    <div className="h-6 w-16 skeleton rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredSeries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
+                <BookOpen className="w-6 h-6 text-primary" />
+              </div>
+              <p className="text-sm font-semibold text-foreground mb-1">No series yet</p>
+              <p className="text-xs text-muted mb-4">Click <strong>New Series</strong> to create your first training course.</p>
+              <Button size="sm" onClick={() => { setEditingSeries(null); setShowSeriesModal(true); }}><Plus className="w-4 h-4" />New Series</Button>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {filteredSeries.map((s) => (
+                <li key={s.id} className="group flex items-center gap-4 px-5 py-4 hover:bg-muted-bg/40 transition-colors">
+                  {/* Icon */}
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
+                    <BookOpen className="w-5 h-5 text-violet-500" />
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground text-sm truncate">{s.title}</p>
+                    {s.description
+                      ? <p className="text-xs text-muted mt-0.5 line-clamp-1">{s.description}</p>
+                      : <p className="text-xs text-muted/50 mt-0.5 italic">No description</p>}
+                  </div>
+                  {/* Stats chips */}
+                  <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted bg-muted-bg px-2.5 py-1 rounded-full">
+                      <Layers className="w-3 h-3" />{s.moduleCount} mod
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted bg-muted-bg px-2.5 py-1 rounded-full">
+                      <Video className="w-3 h-3" />{s.videoCount} vid
+                    </span>
+                  </div>
+                  {/* Badges */}
+                  <div className="hidden md:flex items-center gap-1.5 shrink-0">
+                    {s.isPublic
+                      ? <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-full"><Globe className="w-3 h-3" />Public</span>
+                      : <span className="inline-flex items-center gap-1 text-xs font-medium text-muted bg-muted-bg/60 px-2.5 py-1 rounded-full"><Lock className="w-3 h-3" />Private</span>}
+                    {s.requiresCertificate && (
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-full"><Award className="w-3 h-3" />Cert</span>
+                    )}
+                  </div>
+                  {/* Actions */}
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === s.id ? null : s.id); }}
+                      className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-muted-bg transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                    {openMenu === s.id && (
+                      <div className="absolute right-0 top-8 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => { setEditingSeries(s); setShowSeriesModal(true); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-white/60 transition-colors">
+                          <Pencil className="w-3.5 h-3.5" />Edit
+                        </button>
+                        <button onClick={() => { deleteSeries(s.id, s.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-muted-bg transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       )}
 
-      {/* â”€â”€ Modules Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Modules ───────────────────────────────────────────── */}
       {tab === "modules" && (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border">
-                <tr>
-                  {["Module Title", "Series", "Order", "Videos", ""].map((h) => (
-                    <th key={h} className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-5 py-3 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {loading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <tr key={i}>{Array.from({ length: 5 }).map((__, j) => <td key={j} className="px-5 py-3"><div className="h-4 bg-muted-bg rounded animate-pulse" /></td>)}</tr>
-                  ))
-                ) : filteredModules.length === 0 ? (
-                  <tr><td colSpan={5} className="px-5 py-12 text-center text-muted text-sm">No modules found. Click <strong>New Module</strong> to create one.</td></tr>
-                ) : filteredModules.map((m) => (
-                  <tr key={m.id} className="hover:bg-muted-bg/50 transition-colors group">
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-foreground">{m.title}</p>
-                      {m.description && <p className="text-xs text-muted mt-0.5 line-clamp-1">{m.description}</p>}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="flex items-center gap-1 text-muted text-xs">
-                        <ChevronRight className="w-3.5 h-3.5 shrink-0" />{m.seriesTitle}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-muted">{m.order}</td>
-                    <td className="px-5 py-3.5 text-muted">{m.videoCount}</td>
-                    <td className="px-5 py-3.5 relative">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === m.id ? null : m.id); }}
-                        className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-muted-bg transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      {openMenu === m.id && (
-                        <div className="absolute right-4 top-10 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => { setEditingModule(m); setShowModuleModal(true); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-white/60 transition-colors"><Pencil className="w-3.5 h-3.5" />Edit</button>
-                          <button onClick={() => { deleteModule(m.id, m.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-white/60 transition-colors"><Trash2 className="w-3.5 h-3.5" />Delete</button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {loading ? (
+            <div className="divide-y divide-border">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-5 py-4">
+                  <div className="w-10 h-10 skeleton rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-4 skeleton rounded w-48" />
+                    <div className="h-3 skeleton rounded w-32" />
+                  </div>
+                  <div className="h-6 w-20 skeleton rounded-full" />
+                </div>
+              ))}
+            </div>
+          ) : filteredModules.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-3">
+                <Layers className="w-6 h-6 text-blue-500" />
+              </div>
+              <p className="text-sm font-semibold text-foreground mb-1">No modules yet</p>
+              <p className="text-xs text-muted mb-4">Click <strong>New Module</strong> to add a chapter to a series.</p>
+              <Button size="sm" onClick={() => { setEditingModule(null); setShowModuleModal(true); }}><Plus className="w-4 h-4" />New Module</Button>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {filteredModules.map((m) => (
+                <li key={m.id} className="group flex items-center gap-4 px-5 py-4 hover:bg-muted-bg/40 transition-colors">
+                  {/* Order badge + icon */}
+                  <div className="relative w-10 h-10 shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                      <Layers className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full gradient-bg text-white text-[9px] font-bold flex items-center justify-center shadow">
+                      {m.order}
+                    </span>
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground text-sm truncate">{m.title}</p>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted mt-0.5">
+                      <BookOpen className="w-3 h-3 shrink-0 text-violet-400" />
+                      <ChevronRight className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{m.seriesTitle}</span>
+                    </span>
+                  </div>
+                  {/* Video count chip */}
+                  <span className="hidden sm:inline-flex items-center gap-1 text-xs text-muted bg-muted-bg px-2.5 py-1 rounded-full shrink-0">
+                    <Video className="w-3 h-3" />{m.videoCount} videos
+                  </span>
+                  {/* Actions */}
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === m.id ? null : m.id); }}
+                      className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-muted-bg transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                    {openMenu === m.id && (
+                      <div className="absolute right-0 top-8 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => { setEditingModule(m); setShowModuleModal(true); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-white/60 transition-colors"><Pencil className="w-3.5 h-3.5" />Edit</button>
+                        <button onClick={() => { deleteModule(m.id, m.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-white/60 transition-colors"><Trash2 className="w-3.5 h-3.5" />Delete</button>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       )}
 
-      {/* â”€â”€ Videos Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Videos ────────────────────────────────────────────── */}
       {tab === "videos" && (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b border-border">
-                <tr>
-                  {["Video Title", "Module", "Series", "Duration", "Order", ""].map((h) => (
-                    <th key={h} className="text-left text-xs font-semibold text-muted uppercase tracking-wider px-5 py-3 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {loading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <tr key={i}>{Array.from({ length: 6 }).map((__, j) => <td key={j} className="px-5 py-3"><div className="h-4 bg-muted-bg rounded animate-pulse" /></td>)}</tr>
-                  ))
-                ) : filteredVideos.length === 0 ? (
-                  <tr><td colSpan={6} className="px-5 py-12 text-center text-muted text-sm">No videos yet. Click <strong>Upload Video</strong> to add one.</td></tr>
-                ) : filteredVideos.map((v) => (
-                  <tr key={v.id} className="hover:bg-muted-bg/50 transition-colors group">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Video className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground line-clamp-1">{v.title}</p>
-                          {v.description && <p className="text-xs text-muted line-clamp-1 mt-0.5">{v.description}</p>}
-                        </div>
+          {loading ? (
+            <div className="divide-y divide-border">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-5 py-4">
+                  <div className="w-16 h-10 skeleton rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-4 skeleton rounded w-52" />
+                    <div className="h-3 skeleton rounded w-36" />
+                  </div>
+                  <div className="h-6 w-12 skeleton rounded-full" />
+                </div>
+              ))}
+            </div>
+          ) : filteredVideos.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-3">
+                <Video className="w-6 h-6 text-emerald-500" />
+              </div>
+              <p className="text-sm font-semibold text-foreground mb-1">No videos yet</p>
+              <p className="text-xs text-muted mb-4">Click <strong>Upload Video</strong> to add training content.</p>
+              <Button size="sm" onClick={() => setShowUploadModal(true)}><Upload className="w-4 h-4" />Upload Video</Button>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border">
+              {filteredVideos.map((v) => (
+                <li key={v.id} className="group flex items-center gap-4 px-5 py-3.5 hover:bg-muted-bg/40 transition-colors">
+                  {/* Thumbnail placeholder */}
+                  <div className="w-16 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0 relative overflow-hidden">
+                    <Video className="w-4 h-4 text-emerald-500" />
+                    {v.durationSeconds > 0 && (
+                      <span className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[9px] font-mono px-1 rounded leading-4">
+                        {formatDuration(v.durationSeconds)}
+                      </span>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground text-sm truncate">{v.title}</p>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted mt-0.5">
+                      <Layers className="w-3 h-3 text-blue-400 shrink-0" />
+                      <span className="truncate">{v.moduleTitle}</span>
+                      <ChevronRight className="w-3 h-3 shrink-0" />
+                      <BookOpen className="w-3 h-3 text-violet-400 shrink-0" />
+                      <span className="truncate">{v.seriesTitle}</span>
+                    </span>
+                  </div>
+                  {/* Order chip */}
+                  <span className="hidden sm:inline-flex items-center text-xs text-muted bg-muted-bg px-2 py-1 rounded-full shrink-0">
+                    #{v.order}
+                  </span>
+                  {/* Actions */}
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === v.id ? null : v.id); }}
+                      className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-muted-bg transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+                    {openMenu === v.id && (
+                      <div className="absolute right-0 top-8 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => { deleteVideo(v.id, v.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-white/60 transition-colors"><Trash2 className="w-3.5 h-3.5" />Delete</button>
                       </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-muted whitespace-nowrap">{v.moduleTitle}</td>
-                    <td className="px-5 py-3.5 text-muted whitespace-nowrap">{v.seriesTitle}</td>
-                    <td className="px-5 py-3.5 text-muted whitespace-nowrap">
-                      {v.durationSeconds > 0 ? formatDuration(v.durationSeconds) : <span className="text-muted/50">â€”</span>}
-                    </td>
-                    <td className="px-5 py-3.5 text-muted">{v.order}</td>
-                    <td className="px-5 py-3.5 relative">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === v.id ? null : v.id); }}
-                        className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-muted-bg transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                      {openMenu === v.id && (
-                        <div className="absolute right-4 top-10 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
-                          <button onClick={() => { deleteVideo(v.id, v.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-white/60 transition-colors"><Trash2 className="w-3.5 h-3.5" />Delete</button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       )}
 
-      {/* â”€â”€ Modals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ── Modals ────────────────────────────────────────────── */}
       <SeriesFormModal
         isOpen={showSeriesModal}
         onClose={() => setShowSeriesModal(false)}
         initial={editingSeries ? { ...editingSeries, description: editingSeries.description ?? "" } : undefined}
         onSuccess={fetchAll}
       />
-
       <ModuleFormModal
         isOpen={showModuleModal}
         onClose={() => setShowModuleModal(false)}
@@ -389,7 +468,6 @@ export default function ContentPage(): React.ReactNode {
         initial={editingModule ? { ...editingModule, description: editingModule.description ?? "", order: editingModule.order } : undefined}
         onSuccess={fetchAll}
       />
-
       <VideoUploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}

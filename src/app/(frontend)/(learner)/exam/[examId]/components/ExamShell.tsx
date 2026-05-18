@@ -26,7 +26,7 @@ const SCOPE_ICON: Record<TakeExam["scope"], React.ElementType> = {
 };
 
 const SCOPE_LABEL: Record<TakeExam["scope"], string> = {
-  VIDEO:  "Video Exam",
+  VIDEO:  "Content Exam",
   MODULE: "Module Exam",
   SERIES: "Series Exam",
 };

@@ -46,7 +46,7 @@ export default function LearnerHeader({ onMenuClick }: LearnerHeaderProps): Reac
   }
 
   return (
-    <header className="h-14 glass-strong border-b border-white/40 flex items-center justify-between px-4 lg:px-6 shrink-0 z-30">
+    <header className="h-16.5 glass-strong border-b border-white/40 flex items-center justify-between px-4 lg:px-6 shrink-0 z-30">
       {/* Left: hamburger (mobile) */}
       <button
         onClick={onMenuClick}
@@ -63,7 +63,7 @@ export default function LearnerHeader({ onMenuClick }: LearnerHeaderProps): Reac
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search courses, modules, videosâ€¦"
+            placeholder="Search courses, modules, videos"
             className="w-full h-9 pl-9 pr-4 rounded-xl border border-white/60 bg-white/60 backdrop-blur-sm text-sm text-foreground placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 focus:bg-white/80 transition-all"
           />
         </div>

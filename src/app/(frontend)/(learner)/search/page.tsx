@@ -26,7 +26,7 @@ function TypeIcon({ type }: { type: SearchResult["type"] }) {
 }
 
 function typeLabel(type: SearchResult["type"]): string {
-  return type === "series" ? "Series" : type === "module" ? "Module" : "Video";
+  return type === "series" ? "Series" : type === "module" ? "Module" : "Content";
 }
 
 function typeBadgeVariant(type: SearchResult["type"]): "primary" | "neutral" | "info" {
@@ -77,7 +77,7 @@ function SearchContent(): React.ReactNode {
     { label: "All", value: "all" },
     { label: "Series", value: "series" },
     { label: "Modules", value: "module" },
-    { label: "Videos", value: "video" },
+    { label: "Content", value: "video" },
   ];
 
   return (
@@ -86,7 +86,7 @@ function SearchContent(): React.ReactNode {
       {/* ── Header ──────────────────────────────────────────── */}
       <div>
         <h1 className="text-2xl font-extrabold text-foreground">Search</h1>
-        <p className="text-muted text-sm mt-1">Find series, modules, and videos.</p>
+        <p className="text-muted text-sm mt-1">Find series, modules, and content.</p>
       </div>
 
       {/* ── Search bar ──────────────────────────────────────── */}

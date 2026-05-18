@@ -30,9 +30,11 @@ export async function GET(): Promise<NextResponse> {
         seriesTitle:     v.module.series.title,
         title:           v.title,
         description:     v.description,
+        type:            v.type,
         durationSeconds: v.durationSeconds,
         order:           v.order,
         videoUrl:        v.videoUrl,
+        imageUrl:        v.imageUrl,
       })),
     });
   } catch {
@@ -45,13 +47,16 @@ export async function GET(): Promise<NextResponse> {
 // Cloudinary. Expects JSON body with the Cloudinary response fields.
 
 const createVideoSchema = z.object({
-  title:             z.string().min(1).max(255),
-  description:       z.string().optional(),
-  moduleId:          z.string().min(1),
-  order:             z.number().int().min(1).default(1),
-  videoUrl:          z.string().url(),
-  cloudinaryPublicId: z.string().min(1),
-  durationSeconds:   z.number().int().min(0).default(0),
+  title:              z.string().min(1).max(255),
+  description:        z.string().optional(),
+  moduleId:           z.string().min(1),
+  order:              z.number().int().min(1).default(1),
+  type:               z.enum(["VIDEO", "IMAGE", "TEXT"]).default("VIDEO"),
+  videoUrl:           z.string().url().optional(),
+  imageUrl:           z.string().url().optional(),
+  textContent:        z.string().optional(),
+  cloudinaryPublicId: z.string().optional(),
+  durationSeconds:    z.number().int().min(0).default(0),
 });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -75,14 +80,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Validation failed" }, { status: 422 });
   }
 
-  const { title, description, moduleId, order, videoUrl, cloudinaryPublicId, durationSeconds } = parsed.data;
+  const { title, description, moduleId, order, type, videoUrl, imageUrl, textContent, cloudinaryPublicId, durationSeconds } = parsed.data;
 
   try {
     const parentModule = await prisma.module.findUnique({ where: { id: moduleId } });
     if (!parentModule) return NextResponse.json({ error: "Module not found" }, { status: 404 });
 
     const video = await prisma.video.create({
-      data: { title, description, moduleId, order, videoUrl, cloudinaryPublicId, durationSeconds },
+      data: { title, description, moduleId, order, type, videoUrl, imageUrl, textContent, cloudinaryPublicId, durationSeconds },
     });
 
     return NextResponse.json({ data: video }, { status: 201 });

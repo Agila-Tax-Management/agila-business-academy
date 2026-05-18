@@ -3,11 +3,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Search, UserPlus, BookOpen, Users, ShieldCheck, Trash2, GraduationCap } from "lucide-react";
+import { Search, UserPlus, Users, ShieldCheck, Trash2, GraduationCap, KeyRound } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import type { EmployeeItem } from "@/app/(backend)/api/employees/route";
 import AddEmployeeModal from "./components/AddEmployeeModal";
 import EnrollModal from "./components/EnrollModal";
+import ChangePasswordModal from "./components/ChangePasswordModal";
 
 type EmployeeRole = "EMPLOYEE" | "ADMIN" | "SUPER_ADMIN";
 
@@ -31,8 +32,9 @@ export default function AdminEmployeesPage(): React.ReactNode {
   const [search,       setSearch]       = useState("");
   const [roleFilter,   setRoleFilter]   = useState<EmployeeRole | "ALL">("ALL");
   const [deletingId,   setDeletingId]   = useState<string | null>(null);
-  const [addOpen,      setAddOpen]      = useState(false);
-  const [enrollTarget, setEnrollTarget] = useState<{ id: string; name: string } | null>(null);
+  const [addOpen,        setAddOpen]        = useState(false);
+  const [enrollTarget,   setEnrollTarget]   = useState<{ id: string; name: string } | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +73,6 @@ export default function AdminEmployeesPage(): React.ReactNode {
 
   const totalEmployees = employees.filter((e) => e.role === "EMPLOYEE").length;
   const totalAdmins    = employees.filter((e) => e.role === "ADMIN" || e.role === "SUPER_ADMIN").length;
-  const totalEnrolled  = employees.reduce((acc, e) => acc + e.enrolledSeries, 0);
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
@@ -79,7 +80,7 @@ export default function AdminEmployeesPage(): React.ReactNode {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Employees</h1>
-          <p className="text-muted text-sm mt-1">Manage employee accounts and series enrollments.</p>
+          <p className="text-muted text-sm mt-1">Manage employee accounts and platform access.</p>
         </div>
         <button
           onClick={() => setAddOpen(true)}
@@ -91,7 +92,7 @@ export default function AdminEmployeesPage(): React.ReactNode {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="glass rounded-2xl p-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
             <Users className="w-5 h-5 text-primary" />
@@ -103,16 +104,7 @@ export default function AdminEmployeesPage(): React.ReactNode {
         </div>
         <div className="glass rounded-2xl p-4 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-            <BookOpen className="w-5 h-5 text-success" />
-          </div>
-          <div>
-            <p className="text-xs text-muted">Active Enrollments</p>
-            <p className="text-xl font-bold text-foreground">{totalEnrolled}</p>
-          </div>
-        </div>
-        <div className="glass rounded-2xl p-4 flex items-center gap-3 col-span-2 sm:col-span-1">
-          <div className="w-9 h-9 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5 text-warning" />
+            <ShieldCheck className="w-5 h-5 text-success" />
           </div>
           <div>
             <p className="text-xs text-muted">Admins</p>
@@ -197,9 +189,11 @@ export default function AdminEmployeesPage(): React.ReactNode {
               </div>
 
               {/* Role badge */}
-              <span className={`self-start text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_STYLES[emp.role]}`}>
-                {ROLE_LABELS[emp.role]}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_STYLES[emp.role]}`}>
+                  {ROLE_LABELS[emp.role]}
+                </span>
+              </div>
 
               {/* Stats */}
               <div className="flex gap-4 text-xs border-t border-white/20 pt-3">
@@ -213,14 +207,23 @@ export default function AdminEmployeesPage(): React.ReactNode {
                 </div>
               </div>
 
-              {/* Assign Classes */}
-              <button
-                onClick={() => setEnrollTarget({ id: emp.id, name: emp.name })}
-                className="mt-auto flex items-center justify-center gap-2 w-full py-2 rounded-xl text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
-              >
-                <GraduationCap className="w-4 h-4" />
-                Assign Classes
-              </button>
+              {/* Actions */}
+              <div className="mt-auto flex flex-col gap-2">
+                <button
+                  onClick={() => setEnrollTarget({ id: emp.id, name: emp.name })}
+                  className="flex items-center justify-center gap-2 w-full py-2 rounded-xl text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+                >
+                  <GraduationCap className="w-4 h-4" />
+                  Assign Classes
+                </button>
+                <button
+                  onClick={() => setPasswordTarget({ id: emp.id, name: emp.name })}
+                  className="flex items-center justify-center gap-2 w-full py-2 rounded-xl text-xs font-semibold text-muted bg-muted-bg hover:bg-white/40 transition-colors"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  Change Password
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -236,6 +239,11 @@ export default function AdminEmployeesPage(): React.ReactNode {
         isOpen={!!enrollTarget}
         onClose={() => setEnrollTarget(null)}
         employee={enrollTarget}
+      />
+      <ChangePasswordModal
+        isOpen={!!passwordTarget}
+        onClose={() => setPasswordTarget(null)}
+        employee={passwordTarget}
       />
     </div>
   );

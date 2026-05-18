@@ -42,6 +42,10 @@ export default async function RootLayout({
           | "SUPER_ADMIN"
           | "ADMIN"
           | "EMPLOYEE",
+        approvalStatus: ((session.user as Record<string, unknown>).approvalStatus as
+          | "PENDING"
+          | "APPROVED"
+          | "REJECTED") ?? "APPROVED",
       }
     : null;
 

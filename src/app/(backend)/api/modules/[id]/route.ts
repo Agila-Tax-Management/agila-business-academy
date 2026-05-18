@@ -60,6 +60,7 @@ export async function GET(
       id: v.id,
       title: v.title,
       description: v.description,
+      type: v.type,
       durationSeconds: v.durationSeconds,
       order: v.order,
       videoExam: v.exam ? { id: v.exam.id } : null,

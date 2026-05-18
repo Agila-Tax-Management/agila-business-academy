@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2, Play, Clock, FileText, Lock,
-  ChevronLeft, ChevronRight, ArrowLeft,
+  ChevronLeft, ChevronRight, ArrowLeft, Image as ImageIcon,
 } from "lucide-react";
 import Button from "@/components/UI/Button";
 import Badge from "@/components/UI/Badge";
@@ -16,6 +16,7 @@ interface VideoItem {
   id: string;
   title: string;
   description: string | null;
+  type: "VIDEO" | "IMAGE" | "TEXT";
   durationSeconds: number;
   order: number;
   videoExam: { id: string } | null;
@@ -166,7 +167,7 @@ export default function ModuleDetailShell({
 
       {/* ── Video list ────────────────────────────────────────── */}
       <h2 className="text-sm font-bold text-foreground mb-3">
-        Videos · {data.videos.length}
+        Lessons · {data.videos.length}
       </h2>
 
       <div className="space-y-2 mb-5">
@@ -193,13 +194,19 @@ export default function ModuleDetailShell({
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground leading-snug line-clamp-1">
-                    {video.title}
-                  </p>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    {video.type === "IMAGE" && <ImageIcon className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                    {video.type === "TEXT"  && <FileText className="w-3.5 h-3.5 text-purple-400 shrink-0" />}
+                    {video.type === "VIDEO" && <Play className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                    <p className="text-sm font-semibold text-foreground leading-snug line-clamp-1">
+                      {video.title}
+                    </p>
+                  </div>
                   <div className="flex items-center flex-wrap gap-3 mt-0.5">
                     <span className="flex items-center gap-1 text-xs text-muted">
-                      <Clock className="w-3 h-3" />
-                      {formatDuration(video.durationSeconds)}
+                      {video.type === "VIDEO" && <><Clock className="w-3 h-3" />{formatDuration(video.durationSeconds)}</>}
+                      {video.type === "IMAGE" && <>Image</>}
+                      {video.type === "TEXT"  && <>Reading</>}
                     </span>
                     {video.videoExam && (
                       <span className="flex items-center gap-1 text-xs text-muted">
@@ -222,10 +229,12 @@ export default function ModuleDetailShell({
                   )}
                 </div>
 
-                {/* Watch button */}
+                {/* Action button */}
                 <Link href={`/learn/${video.id}`} className="shrink-0">
                   <Button variant={isCompleted ? "ghost" : "secondary"} size="sm">
-                    {isCompleted ? "Rewatch" : watchPct > 0 ? "Resume" : "Watch"}
+                    {video.type === "TEXT"  ? (isCompleted ? "Reread" : "Read") :
+                     video.type === "IMAGE" ? (isCompleted ? "View Again" : "View") :
+                     isCompleted ? "Rewatch" : watchPct > 0 ? "Resume" : "Watch"}
                   </Button>
                 </Link>
               </div>
@@ -273,7 +282,7 @@ export default function ModuleDetailShell({
               </Link>
             ) : (
               <span className="flex items-center gap-1.5 text-xs text-muted">
-                <Lock className="w-3.5 h-3.5" /> Complete all videos first
+                <Lock className="w-3.5 h-3.5" /> Complete all lessons first
               </span>
             )}
           </div>

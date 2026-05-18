@@ -1,5 +1,11 @@
 // prisma/models/content.prisma
 
+enum LessonType {
+  VIDEO
+  IMAGE
+  TEXT
+}
+
 model Series {
   id                 String   @id @default(cuid())
   title              String
@@ -37,16 +43,19 @@ model Module {
 }
 
 model Video {
-  id                 String   @id @default(cuid())
+  id                 String     @id @default(cuid())
   moduleId           String
   title              String
   description        String?
-  videoUrl           String
+  type               LessonType @default(VIDEO)
+  videoUrl           String?
+  imageUrl           String?
+  textContent        String?
   cloudinaryPublicId String?
-  durationSeconds    Int      @default(0)
-  order              Int      @default(0)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  durationSeconds    Int        @default(0)
+  order              Int        @default(0)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   module        Module          @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   videoProgress VideoProgress[]

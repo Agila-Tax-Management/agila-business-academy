@@ -2,13 +2,14 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, Play, Clock, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Play, Clock, ArrowLeft, Image as ImageIcon, FileText } from "lucide-react";
 
 interface SiblingVideo {
   id: string;
   title: string;
   order: number;
   durationSeconds: number;
+  type: "VIDEO" | "IMAGE" | "TEXT";
   progress: { watchedSeconds: number; completedAt: string | null } | null;
 }
 
@@ -81,7 +82,13 @@ export default function VideoSidebar({
                   <CheckCircle2 className="w-5 h-5 text-success" />
                 ) : isCurrent ? (
                   <div className="w-5 h-5 rounded-full border-2 border-primary flex items-center justify-center">
-                    <Play className="w-2.5 h-2.5 text-primary fill-primary" />
+                    {video.type === "IMAGE" ? (
+                      <ImageIcon className="w-2.5 h-2.5 text-primary" />
+                    ) : video.type === "TEXT" ? (
+                      <FileText className="w-2.5 h-2.5 text-primary" />
+                    ) : (
+                      <Play className="w-2.5 h-2.5 text-primary fill-primary" />
+                    )}
                   </div>
                 ) : (
                   <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center text-[10px] text-muted font-semibold">
@@ -100,8 +107,12 @@ export default function VideoSidebar({
                   {video.title}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1">
-                  <Clock className="w-3 h-3 text-muted" />
-                  <span className="text-xs text-muted">{formatDuration(video.durationSeconds)}</span>
+                  {video.type === "VIDEO" && <>
+                    <Clock className="w-3 h-3 text-muted" />
+                    <span className="text-xs text-muted">{formatDuration(video.durationSeconds)}</span>
+                  </>}
+                  {video.type === "IMAGE" && <span className="text-xs text-muted">Image</span>}
+                  {video.type === "TEXT"  && <span className="text-xs text-muted">Reading</span>}
                 </div>
                 {watchPct > 0 && (
                   <div className="mt-1.5 h-0.5 rounded-full bg-border overflow-hidden">

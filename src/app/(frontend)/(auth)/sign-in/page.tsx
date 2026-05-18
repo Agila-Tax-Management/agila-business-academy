@@ -26,7 +26,8 @@ export default function SignInPage(): React.ReactNode {
         error("Sign in failed", result.error.message ?? "Invalid credentials.");
         return;
       }
-      router.push("/dashboard");
+      const role = (result.data?.user as Record<string, unknown> | undefined)?.role as string | undefined;
+      router.push(role === "ADMIN" || role === "SUPER_ADMIN" ? "/admin" : "/dashboard");
     } catch {
       error("Sign in failed", "An unexpected error occurred. Please try again.");
     } finally {

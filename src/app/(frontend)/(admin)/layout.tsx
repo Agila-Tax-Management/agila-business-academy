@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Menu, Moon, Sun, LogOut, User, ChevronDown } from "lucide-react";
+import { Menu, Moon, Sun, LogOut, User, ChevronDown, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -48,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-14 glass-strong border-b border-white/40 flex items-center justify-between px-4 lg:px-6 shrink-0 z-30">
+        <header className="h-16 glass-strong border-b border-white/40 flex items-center justify-between px-4 lg:px-6 shrink-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden text-muted hover:text-foreground transition-colors p-1.5 rounded-xl hover:bg-white/60 shrink-0"
@@ -61,6 +61,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div className="flex items-center gap-1 ml-auto">
+            {/* Learner view switcher */}
+            <Link
+              href="/dashboard"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-muted hover:text-foreground hover:bg-white/60 border border-white/40 transition-colors mr-1"
+              title="Switch to learner view"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              Learner View
+            </Link>
             <button
               onClick={toggle}
               className="p-2 rounded-xl text-muted hover:text-foreground hover:bg-white/60 transition-colors"

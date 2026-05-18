@@ -2,9 +2,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ArrowLeft, Clock, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowLeft, Clock, Layers, CheckCircle2, BookOpen } from "lucide-react";
 import Button from "@/components/UI/Button";
 import Badge from "@/components/UI/Badge";
 import VideoSidebar from "./VideoSidebar";
@@ -15,6 +16,7 @@ interface SiblingVideo {
   title: string;
   order: number;
   durationSeconds: number;
+  type: "VIDEO" | "IMAGE" | "TEXT";
   progress: { watchedSeconds: number; completedAt: string | null } | null;
 }
 
@@ -22,7 +24,10 @@ interface VideoData {
   id: string;
   title: string;
   description: string | null;
-  videoUrl: string;
+  type: "VIDEO" | "IMAGE" | "TEXT";
+  videoUrl: string | null;
+  imageUrl: string | null;
+  textContent: string | null;
   durationSeconds: number;
   order: number;
   module: {
@@ -94,6 +99,7 @@ export default function VideoPlayerShell({ videoId }: { videoId: string }): Reac
   const [fetchError,  setFetchError]  = useState<string | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showBanner,  setShowBanner]  = useState(false);
+  const [markingRead, setMarkingRead] = useState(false);
 
   // Reset state when videoId changes (adjust state during render)
   const [prevVideoId, setPrevVideoId] = useState(videoId);
@@ -104,6 +110,7 @@ export default function VideoPlayerShell({ videoId }: { videoId: string }): Reac
     setFetchError(null);
     setIsCompleted(false);
     setShowBanner(false);
+    setMarkingRead(false);
   }
 
   /* ── Fetch video data ────────────────────────────────────── */
@@ -147,6 +154,33 @@ export default function VideoPlayerShell({ videoId }: { videoId: string }): Reac
     },
     [videoId],
   );
+
+  /* ── Mark complete (IMAGE / TEXT) ────────────────────────── */
+  const markComplete = useCallback(async () => {
+    if (isCompleted) return;
+    setMarkingRead(true);
+    try {
+      const res = await fetch(`/api/videos/${videoId}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ complete: true }),
+      });
+      const json = await res.json() as { data?: { firstCompletion: boolean } };
+      if (json.data?.firstCompletion || res.ok) {
+        setIsCompleted(true);
+        setShowBanner(true);
+      }
+    } catch { /* ignore */ } finally {
+      setMarkingRead(false);
+    }
+  }, [videoId, isCompleted]);
+
+  /* ── Auto-complete for IMAGE (3 s after mount) ───────────── */
+  useEffect(() => {
+    if (!data || data.type !== "IMAGE" || isCompleted) return;
+    const t = setTimeout(() => { void markComplete(); }, 3000);
+    return () => clearTimeout(t);
+  }, [data, isCompleted, markComplete]);
 
   /* ── Periodic progress (every 15 s while playing) ────────── */
   useEffect(() => {
@@ -211,18 +245,45 @@ export default function VideoPlayerShell({ videoId }: { videoId: string }): Reac
       {/* ── Left: player + info ─────────────────────────── */}
       <div className="flex-1 min-w-0 overflow-y-auto">
 
-        {/* Video */}
-        <div className="bg-black w-full aspect-video">
-          <video
-            ref={videoRef}
-            src={data.videoUrl}
-            controls
-            className="w-full h-full object-contain"
-            onLoadedMetadata={handleLoadedMetadata}
-            onPause={handlePause}
-            onEnded={handleEnded}
-          />
-        </div>
+        {/* ── Media area (type-specific) ───────────────────── */}
+        {data.type === "VIDEO" && (
+          <div className="bg-black w-full aspect-video">
+            <video
+              ref={videoRef}
+              src={data.videoUrl ?? undefined}
+              controls
+              className="w-full h-full object-contain"
+              onLoadedMetadata={handleLoadedMetadata}
+              onPause={handlePause}
+              onEnded={handleEnded}
+            />
+          </div>
+        )}
+        {data.type === "IMAGE" && data.imageUrl && (
+          <div className="w-full bg-muted-bg/50 flex items-center justify-center p-6 min-h-64">
+            <Image
+              src={data.imageUrl}
+              alt={data.title}
+              width={1920}
+              height={1080}
+              className="max-h-[70vh] w-auto max-w-full object-contain rounded-xl shadow-lg"
+              priority
+            />
+          </div>
+        )}
+        {data.type === "TEXT" && (
+          <div className="w-full bg-muted-bg/30 border-b border-border px-6 py-5 lg:px-10 lg:py-8">
+            <div className="max-w-3xl mx-auto">
+              <div className="flex items-center gap-2 mb-4">
+                <BookOpen className="w-5 h-5 text-primary" />
+                <span className="text-sm font-semibold text-primary">Reading Material</span>
+              </div>
+              <div className="whitespace-pre-wrap text-foreground text-sm leading-relaxed rounded-xl bg-card border border-border p-6">
+                {data.textContent}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Info area */}
         <div className="p-6 lg:p-8">
@@ -266,13 +327,15 @@ export default function VideoPlayerShell({ videoId }: { videoId: string }): Reac
             </div>
           </div>
 
-          {/* Duration meta */}
-          <div className="flex items-center gap-3 text-xs text-muted mb-4">
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              {formatDuration(data.durationSeconds)}
-            </span>
-          </div>
+          {/* Duration meta — only for VIDEO */}
+          {data.type === "VIDEO" && (
+            <div className="flex items-center gap-3 text-xs text-muted mb-4">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                {formatDuration(data.durationSeconds)}
+              </span>
+            </div>
+          )}
 
           {/* Description */}
           {data.description && (
@@ -288,6 +351,20 @@ export default function VideoPlayerShell({ videoId }: { videoId: string }): Reac
               moduleId={module.id}
               onDismiss={() => setShowBanner(false)}
             />
+          )}
+
+          {/* Mark as Read button (TEXT only) */}
+          {data.type === "TEXT" && !isCompleted && (
+            <div className="mb-4">
+              <Button
+                variant="primary"
+                onClick={() => void markComplete()}
+                loading={markingRead}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Mark as Read
+              </Button>
+            </div>
           )}
 
           {/* Prev / Next navigation */}

@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -69,14 +70,22 @@ export default function AdminSidebar({ open, onClose, collapsed, onToggleCollaps
         `}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between py-5 border-b border-white/30 shrink-0 px-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl gradient-bg flex items-center justify-center shadow-[0_4px_12px_rgba(99,102,241,0.35)] shrink-0">
-              <span className="text-white font-bold text-sm">A</span>
+        <div className="flex items-center justify-between py-4 border-b border-white/30 shrink-0 px-4">
+          <div className="flex items-center gap-2.5">
+            <div className="shrink-0 w-8 h-8">
+              <Image
+                src="/image/agila_icon.ico"
+                alt="Agila"
+                width={32}
+                height={32}
+                unoptimized
+                className="w-full h-full object-contain"
+                priority
+              />
             </div>
             <div className={collapsed ? "lg:hidden" : ""}>
-              <p className="text-foreground font-bold text-sm leading-tight">Admin Panel</p>
-              <p className="text-muted text-[10px] tracking-widest uppercase">Academy</p>
+              <p className="text-foreground font-bold text-sm leading-tight">AGILA</p>
+              <p className="text-muted text-[10px] tracking-widest uppercase">Admin Panel</p>
             </div>
           </div>
           <div className="flex items-center gap-1">

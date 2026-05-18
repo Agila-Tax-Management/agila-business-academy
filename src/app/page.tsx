@@ -6,7 +6,8 @@ import { headers } from "next/headers";
 export default async function RootPage(): Promise<never> {
   const session = await auth.api.getSession({ headers: await headers() });
   if (session) {
-    redirect("/dashboard");
+    const role = (session.user as Record<string, unknown>).role as string | undefined;
+    redirect(role === "ADMIN" || role === "SUPER_ADMIN" ? "/admin" : "/dashboard");
   }
   redirect("/sign-in");
 }

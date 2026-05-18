@@ -24,7 +24,7 @@ export async function GET(
             series: { select: { id: true, title: true, isPublic: true } },
             videos: {
               orderBy: { order: "asc" },
-              select: { id: true, title: true, order: true, durationSeconds: true },
+              select: { id: true, title: true, order: true, durationSeconds: true, type: true },
             },
           },
         },
@@ -69,7 +69,10 @@ export async function GET(
         id: video.id,
         title: video.title,
         description: video.description,
+        type: video.type,
         videoUrl: video.videoUrl,
+        imageUrl: video.imageUrl,
+        textContent: video.textContent,
         durationSeconds: video.durationSeconds,
         order: video.order,
         module: {

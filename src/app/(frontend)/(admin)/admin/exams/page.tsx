@@ -85,7 +85,7 @@ export default function AdminExamsPage(): React.ReactNode {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Total Exams",    value: exams.length },
-          { label: "Video Exams",    value: exams.filter((e) => e.scope === "VIDEO").length },
+          { label: "Content Exams",  value: exams.filter((e) => e.scope === "VIDEO").length },
           { label: "Module Exams",   value: exams.filter((e) => e.scope === "MODULE").length },
           { label: "Series Exams",   value: exams.filter((e) => e.scope === "SERIES").length },
         ].map((s) => (
@@ -115,7 +115,7 @@ export default function AdminExamsPage(): React.ReactNode {
             className="appearance-none h-10 pl-3 pr-8 rounded-xl border border-white/60 bg-white/60 backdrop-blur-sm text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all"
           >
             <option value="ALL">All Scopes</option>
-            <option value="VIDEO">Video</option>
+            <option value="VIDEO">Content</option>
             <option value="MODULE">Module</option>
             <option value="SERIES">Series</option>
           </select>
