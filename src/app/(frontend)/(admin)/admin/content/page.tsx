@@ -2,10 +2,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Plus, Search, Upload, BookOpen, Layers, Video,
   MoreVertical, Pencil, Trash2, ChevronRight, Globe, Lock, Award,
-  Clock,
+  Clock, Image as ImageIcon, FileText,
 } from "lucide-react";
 import Button from "@/components/UI/Button";
 import Badge from "@/components/UI/Badge";
@@ -14,7 +15,7 @@ import Card from "@/components/UI/Card";
 import { useToast } from "@/context/ToastContext";
 import SeriesFormModal from "./components/SeriesFormModal";
 import ModuleFormModal from "./components/ModuleFormModal";
-import VideoUploadModal from "./components/VideoUploadModal";
+import LessonItemModal from "./components/LessonItemModal";
 
 // â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -45,9 +46,11 @@ interface VideoRow {
   seriesTitle: string;
   title: string;
   description: string | null;
+  type: "VIDEO" | "IMAGE" | "TEXT";
   durationSeconds: number;
   order: number;
-  videoUrl: string;
+  videoUrl: string | null;
+  imageUrl: string | null;
 }
 
 type Tab = "series" | "modules" | "videos";
@@ -73,15 +76,21 @@ export default function ContentPage(): React.ReactNode {
   const [videos,  setVideos]  = useState<VideoRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Modals
   const [showSeriesModal, setShowSeriesModal]   = useState(false);
   const [showModuleModal, setShowModuleModal]   = useState(false);
   const [showUploadModal, setShowUploadModal]   = useState(false);
   const [editingSeries, setEditingSeries]       = useState<SeriesRow | null>(null);
   const [editingModule, setEditingModule]       = useState<ModuleRow | null>(null);
 
-  // Dropdown open state
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  // Dropdown open state — uses fixed positioning to escape overflow-y-auto scroll container
+  const [openMenu, setOpenMenu] = useState<{ id: string; top: number; right: number } | null>(null);
+
+  function toggleMenu(e: React.MouseEvent<HTMLButtonElement>, id: string) {
+    e.stopPropagation();
+    if (openMenu?.id === id) { setOpenMenu(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setOpenMenu({ id, top: rect.bottom + 4, right: window.innerWidth - rect.right });
+  }
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -111,14 +120,14 @@ export default function ContentPage(): React.ReactNode {
   }
 
   async function deleteModule(id: string, title: string) {
-    if (!confirm(`Delete module "${title}" and all its videos?`)) return;
+    if (!confirm(`Delete module "${title}" and all its content?`)) return;
     const res = await fetch(`/api/modules/${id}`, { method: "DELETE" });
     if (res.ok) { success("Deleted", `"${title}" has been removed.`); void fetchAll(); }
     else toastError("Delete failed", "Could not delete the module.");
   }
 
   async function deleteVideo(id: string, title: string) {
-    if (!confirm(`Delete video "${title}"?`)) return;
+    if (!confirm(`Delete content "${title}"?`)) return;
     const res = await fetch(`/api/videos/${id}`, { method: "DELETE" });
     if (res.ok) { success("Deleted", `"${title}" has been removed.`); void fetchAll(); }
     else toastError("Delete failed", "Could not delete the video.");
@@ -137,7 +146,7 @@ export default function ContentPage(): React.ReactNode {
   const TABS: { key: Tab; label: string; icon: React.ReactNode; count: number }[] = [
     { key: "series",  label: "Series",  icon: <BookOpen className="w-4 h-4" />, count: series.length },
     { key: "modules", label: "Modules", icon: <Layers className="w-4 h-4" />,   count: modules.length },
-    { key: "videos",  label: "Videos",  icon: <Video className="w-4 h-4" />,    count: videos.length },
+    { key: "videos",  label: "Content", icon: <Video className="w-4 h-4" />,    count: videos.length },
   ];
 
   const filteredSeries  = series.filter((s)  => s.title.toLowerCase().includes(search.toLowerCase()));
@@ -163,7 +172,7 @@ export default function ContentPage(): React.ReactNode {
         <div className="flex items-center gap-2">
           {tab === "series"  && <Button onClick={() => { setEditingSeries(null); setShowSeriesModal(true); }} size="sm"><Plus className="w-4 h-4" />New Series</Button>}
           {tab === "modules" && <Button onClick={() => { setEditingModule(null); setShowModuleModal(true); }} size="sm"><Plus className="w-4 h-4" />New Module</Button>}
-          {tab === "videos"  && <Button onClick={() => setShowUploadModal(true)} size="sm"><Upload className="w-4 h-4" />Upload Video</Button>}
+          {tab === "videos"  && <Button onClick={() => setShowUploadModal(true)} size="sm"><Plus className="w-4 h-4" />Create Content</Button>}
         </div>
       </div>
 
@@ -172,7 +181,7 @@ export default function ContentPage(): React.ReactNode {
         {[
           { label: "Series",  value: series.length,  icon: <BookOpen className="w-4 h-4" />, color: "text-violet-500", bg: "bg-violet-500/10" },
           { label: "Modules", value: modules.length, icon: <Layers className="w-4 h-4" />,   color: "text-blue-500",   bg: "bg-blue-500/10"   },
-          { label: "Videos",  value: videos.length,  icon: <Video className="w-4 h-4" />,    color: "text-emerald-500",bg: "bg-emerald-500/10"},
+          { label: "Content",  value: videos.length,  icon: <Video className="w-4 h-4" />,    color: "text-emerald-500",bg: "bg-emerald-500/10"},
           { label: "Total Duration", value: loading ? "—" : fmtHours(totalDuration), icon: <Clock className="w-4 h-4" />, color: "text-amber-500", bg: "bg-amber-500/10" },
         ].map((s) => (
           <Card key={s.label} className="flex items-center gap-3 px-4 py-3">
@@ -222,7 +231,7 @@ export default function ContentPage(): React.ReactNode {
 
       {/* ── Series ────────────────────────────────────────────── */}
       {tab === "series" && (
-        <Card className="overflow-hidden">
+        <Card>
           {loading ? (
             <div className="divide-y divide-border">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -251,7 +260,7 @@ export default function ContentPage(): React.ReactNode {
           ) : (
             <ul className="divide-y divide-border">
               {filteredSeries.map((s) => (
-                <li key={s.id} className="group flex items-center gap-4 px-5 py-4 hover:bg-muted-bg/40 transition-colors">
+                <li key={s.id} className="group flex items-center gap-4 px-5 py-4 hover:bg-muted-bg/40 transition-colors first:rounded-t-2xl last:rounded-b-2xl">
                   {/* Icon */}
                   <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
                     <BookOpen className="w-5 h-5 text-violet-500" />
@@ -269,7 +278,7 @@ export default function ContentPage(): React.ReactNode {
                       <Layers className="w-3 h-3" />{s.moduleCount} mod
                     </span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted bg-muted-bg px-2.5 py-1 rounded-full">
-                      <Video className="w-3 h-3" />{s.videoCount} vid
+                      <Video className="w-3 h-3" />{s.videoCount} content
                     </span>
                   </div>
                   {/* Badges */}
@@ -282,23 +291,13 @@ export default function ContentPage(): React.ReactNode {
                     )}
                   </div>
                   {/* Actions */}
-                  <div className="relative shrink-0">
+                  <div className="shrink-0">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === s.id ? null : s.id); }}
+                      onClick={(e) => toggleMenu(e, s.id)}
                       className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-muted-bg transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </button>
-                    {openMenu === s.id && (
-                      <div className="absolute right-0 top-8 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => { setEditingSeries(s); setShowSeriesModal(true); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-white/60 transition-colors">
-                          <Pencil className="w-3.5 h-3.5" />Edit
-                        </button>
-                        <button onClick={() => { deleteSeries(s.id, s.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-muted-bg transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />Delete
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </li>
               ))}
@@ -309,7 +308,7 @@ export default function ContentPage(): React.ReactNode {
 
       {/* ── Modules ───────────────────────────────────────────── */}
       {tab === "modules" && (
-        <Card className="overflow-hidden">
+        <Card>
           {loading ? (
             <div className="divide-y divide-border">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -335,7 +334,7 @@ export default function ContentPage(): React.ReactNode {
           ) : (
             <ul className="divide-y divide-border">
               {filteredModules.map((m) => (
-                <li key={m.id} className="group flex items-center gap-4 px-5 py-4 hover:bg-muted-bg/40 transition-colors">
+                <li key={m.id} className="group flex items-center gap-4 px-5 py-4 hover:bg-muted-bg/40 transition-colors first:rounded-t-2xl last:rounded-b-2xl">
                   {/* Order badge + icon */}
                   <div className="relative w-10 h-10 shrink-0">
                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
@@ -356,22 +355,16 @@ export default function ContentPage(): React.ReactNode {
                   </div>
                   {/* Video count chip */}
                   <span className="hidden sm:inline-flex items-center gap-1 text-xs text-muted bg-muted-bg px-2.5 py-1 rounded-full shrink-0">
-                    <Video className="w-3 h-3" />{m.videoCount} videos
+                    <Video className="w-3 h-3" />{m.videoCount} content
                   </span>
                   {/* Actions */}
-                  <div className="relative shrink-0">
+                  <div className="shrink-0">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === m.id ? null : m.id); }}
+                      onClick={(e) => toggleMenu(e, m.id)}
                       className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-muted-bg transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </button>
-                    {openMenu === m.id && (
-                      <div className="absolute right-0 top-8 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => { setEditingModule(m); setShowModuleModal(true); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-white/60 transition-colors"><Pencil className="w-3.5 h-3.5" />Edit</button>
-                        <button onClick={() => { deleteModule(m.id, m.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-white/60 transition-colors"><Trash2 className="w-3.5 h-3.5" />Delete</button>
-                      </div>
-                    )}
                   </div>
                 </li>
               ))}
@@ -382,7 +375,7 @@ export default function ContentPage(): React.ReactNode {
 
       {/* ── Videos ────────────────────────────────────────────── */}
       {tab === "videos" && (
-        <Card className="overflow-hidden">
+        <Card>
           {loading ? (
             <div className="divide-y divide-border">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -401,18 +394,22 @@ export default function ContentPage(): React.ReactNode {
               <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-3">
                 <Video className="w-6 h-6 text-emerald-500" />
               </div>
-              <p className="text-sm font-semibold text-foreground mb-1">No videos yet</p>
-              <p className="text-xs text-muted mb-4">Click <strong>Upload Video</strong> to add training content.</p>
-              <Button size="sm" onClick={() => setShowUploadModal(true)}><Upload className="w-4 h-4" />Upload Video</Button>
+              <p className="text-sm font-semibold text-foreground mb-1">No lesson items yet</p>
+              <p className="text-xs text-muted mb-4">Click <strong>Create Content</strong> to add videos, images, or reading material.</p>
+              <Button size="sm" onClick={() => setShowUploadModal(true)}><Plus className="w-4 h-4" />Create Content</Button>
             </div>
           ) : (
             <ul className="divide-y divide-border">
               {filteredVideos.map((v) => (
-                <li key={v.id} className="group flex items-center gap-4 px-5 py-3.5 hover:bg-muted-bg/40 transition-colors">
-                  {/* Thumbnail placeholder */}
-                  <div className="w-16 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0 relative overflow-hidden">
-                    <Video className="w-4 h-4 text-emerald-500" />
-                    {v.durationSeconds > 0 && (
+                <li key={v.id} className="group flex items-center gap-4 px-5 py-3.5 hover:bg-muted-bg/40 transition-colors first:rounded-t-2xl last:rounded-b-2xl">
+                  {/* Type icon */}
+                  <div className="w-16 h-10 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden"
+                    style={{ background: v.type === "VIDEO" ? "rgb(16 185 129 / 0.1)" : v.type === "IMAGE" ? "rgb(59 130 246 / 0.1)" : "rgb(168 85 247 / 0.1)" }}
+                  >
+                    {v.type === "VIDEO" && <Video className="w-4 h-4 text-emerald-500" />}
+                    {v.type === "IMAGE" && <ImageIcon className="w-4 h-4 text-blue-500" />}
+                    {v.type === "TEXT"  && <FileText className="w-4 h-4 text-purple-500" />}
+                    {v.type === "VIDEO" && v.durationSeconds > 0 && (
                       <span className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-[9px] font-mono px-1 rounded leading-4">
                         {formatDuration(v.durationSeconds)}
                       </span>
@@ -434,18 +431,13 @@ export default function ContentPage(): React.ReactNode {
                     #{v.order}
                   </span>
                   {/* Actions */}
-                  <div className="relative shrink-0">
+                  <div className="shrink-0">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === v.id ? null : v.id); }}
+                      onClick={(e) => toggleMenu(e, v.id)}
                       className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-muted-bg transition-colors opacity-0 group-hover:opacity-100"
                     >
                       <MoreVertical className="w-4 h-4" />
                     </button>
-                    {openMenu === v.id && (
-                      <div className="absolute right-0 top-8 z-20 w-36 glass-strong rounded-xl shadow-lg py-1" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => { deleteVideo(v.id, v.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-white/60 transition-colors"><Trash2 className="w-3.5 h-3.5" />Delete</button>
-                      </div>
-                    )}
                   </div>
                 </li>
               ))}
@@ -455,6 +447,46 @@ export default function ContentPage(): React.ReactNode {
       )}
 
       {/* ── Modals ────────────────────────────────────────────── */}
+
+      {/* Portal dropdown — mounted to document.body to escape backdrop-filter stacking context */}
+      {openMenu && typeof document !== "undefined" && createPortal(
+        (() => {
+          const seriesItem = filteredSeries.find((s) => s.id === openMenu.id);
+          const moduleItem = filteredModules.find((m) => m.id === openMenu.id);
+          const videoItem  = filteredVideos.find((v) => v.id === openMenu.id);
+          return (
+            <div
+              style={{ position: "fixed", top: openMenu.top, right: openMenu.right, zIndex: 9999 }}
+              className="w-36 glass-strong rounded-xl shadow-xl py-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {seriesItem && <>
+                <button onClick={() => { setEditingSeries(seriesItem); setShowSeriesModal(true); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-white/60 transition-colors rounded-t-xl">
+                  <Pencil className="w-3.5 h-3.5" />Edit
+                </button>
+                <button onClick={() => { deleteSeries(seriesItem.id, seriesItem.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-muted-bg transition-colors rounded-b-xl">
+                  <Trash2 className="w-3.5 h-3.5" />Delete
+                </button>
+              </>}
+              {moduleItem && <>
+                <button onClick={() => { setEditingModule(moduleItem); setShowModuleModal(true); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-white/60 transition-colors rounded-t-xl">
+                  <Pencil className="w-3.5 h-3.5" />Edit
+                </button>
+                <button onClick={() => { deleteModule(moduleItem.id, moduleItem.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-white/60 transition-colors rounded-b-xl">
+                  <Trash2 className="w-3.5 h-3.5" />Delete
+                </button>
+              </>}
+              {videoItem && (
+                <button onClick={() => { deleteVideo(videoItem.id, videoItem.title); setOpenMenu(null); }} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-white/60 transition-colors rounded-xl">
+                  <Trash2 className="w-3.5 h-3.5" />Delete
+                </button>
+              )}
+            </div>
+          );
+        })(),
+        document.body
+      )}
+
       <SeriesFormModal
         isOpen={showSeriesModal}
         onClose={() => setShowSeriesModal(false)}
@@ -468,7 +500,7 @@ export default function ContentPage(): React.ReactNode {
         initial={editingModule ? { ...editingModule, description: editingModule.description ?? "", order: editingModule.order } : undefined}
         onSuccess={fetchAll}
       />
-      <VideoUploadModal
+      <LessonItemModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         modules={moduleOptions}
