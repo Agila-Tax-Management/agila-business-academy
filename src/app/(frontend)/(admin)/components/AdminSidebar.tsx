@@ -10,9 +10,9 @@ import {
   Users,
   BarChart2,
   X,
-  Settings,
   ChevronLeft,
   ChevronRight,
+  Settings,
 } from "lucide-react";
 
 interface NavItem {
@@ -27,6 +27,7 @@ const adminNav: NavItem[] = [
   { label: "Exams",     href: "/admin/exams",     icon: <ClipboardList className="w-5 h-5" /> },
   { label: "Employees", href: "/admin/employees", icon: <Users className="w-5 h-5" /> },
   { label: "Results",   href: "/admin/results",   icon: <BarChart2 className="w-5 h-5" /> },
+  { label: "Settings",  href: "/admin/settings",  icon: <Settings className="w-5 h-5" /> },
 ];
 
 interface AdminSidebarProps {
@@ -68,10 +69,7 @@ export default function AdminSidebar({ open, onClose, collapsed, onToggleCollaps
         `}
       >
         {/* Logo */}
-        <div
-          className={`flex items-center py-5 border-b border-white/30 shrink-0
-            ${collapsed ? "lg:justify-center px-5 lg:px-3" : "justify-between px-5"}`}
-        >
+        <div className="flex items-center justify-between py-5 border-b border-white/30 shrink-0 px-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl gradient-bg flex items-center justify-center shadow-[0_4px_12px_rgba(99,102,241,0.35)] shrink-0">
               <span className="text-white font-bold text-sm">A</span>
@@ -81,9 +79,18 @@ export default function AdminSidebar({ open, onClose, collapsed, onToggleCollaps
               <p className="text-muted text-[10px] tracking-widest uppercase">Academy</p>
             </div>
           </div>
-          <button onClick={onClose} className="lg:hidden text-muted hover:text-foreground transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={onClose} className="lg:hidden p-1 text-muted hover:text-foreground transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onToggleCollapse}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-muted hover:text-foreground hover:bg-white/60 transition-all"
+            >
+              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
         {/* Nav */}
@@ -110,29 +117,7 @@ export default function AdminSidebar({ open, onClose, collapsed, onToggleCollaps
           </ul>
         </nav>
 
-        {/* Footer */}
-        <div className="shrink-0 border-t border-white/30 px-3 py-3 flex flex-col gap-1">
-          <Link
-            href="/profile"
-            onClick={onClose}
-            title={collapsed ? "Settings" : undefined}
-            className={`flex items-center rounded-xl text-sm font-medium transition-all text-sidebar-muted hover:text-foreground hover:bg-white/60
-              ${collapsed ? "lg:justify-center lg:px-0 lg:py-3 gap-3 px-3 py-2.5" : "gap-3 px-3 py-2.5"}`}
-          >
-            <Settings className="w-5 h-5 shrink-0" />
-            <span className={collapsed ? "lg:hidden" : ""}>Settings</span>
-          </Link>
 
-          {/* Collapse toggle — desktop only */}
-          <button
-            onClick={onToggleCollapse}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={`hidden lg:flex items-center rounded-xl text-xs text-sidebar-muted hover:text-foreground hover:bg-white/60 transition-all
-              ${collapsed ? "justify-center px-0 py-3" : "gap-3 px-3 py-2.5"}`}
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>}
-          </button>
-        </div>
       </aside>
     </>
   );

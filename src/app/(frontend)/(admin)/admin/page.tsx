@@ -25,37 +25,22 @@ interface RecentAttempt {
   submittedAt: string;
 }
 
-const MOCK_STATS: AdminStats = {
-  totalSeries: 3,
-  totalModules: 5,
-  totalVideos: 9,
-  totalEmployees: 3,
-  totalExams: 3,
-  totalAttempts: 12,
-  passRate: 75,
-};
-
-const MOCK_RECENT: RecentAttempt[] = [
-  { id: "1", employeeName: "Juan dela Cruz", examTitle: "Company Policies Quiz", score: 90, passed: true, submittedAt: "2026-05-07T09:15:00Z" },
-  { id: "2", employeeName: "Maria Santos", examTitle: "Safety Procedures", score: 60, passed: false, submittedAt: "2026-05-07T08:40:00Z" },
-  { id: "3", employeeName: "Carlo Reyes", examTitle: "Company Policies Quiz", score: 85, passed: true, submittedAt: "2026-05-06T16:20:00Z" },
-  { id: "4", employeeName: "Juan dela Cruz", examTitle: "Onboarding Series Final", score: 80, passed: true, submittedAt: "2026-05-06T14:00:00Z" },
-  { id: "5", employeeName: "Maria Santos", examTitle: "Leadership Module 1", score: 70, passed: false, submittedAt: "2026-05-05T11:30:00Z" },
-];
-
 export default function AdminOverviewPage(): React.ReactNode {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recent, setRecent] = useState<RecentAttempt[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: replace with real API calls
-    const timer = setTimeout(() => {
-      setStats(MOCK_STATS);
-      setRecent(MOCK_RECENT);
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
+    fetch("/api/admin/overview")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.data) {
+          setStats(res.data.stats);
+          setRecent(res.data.recentAttempts);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {

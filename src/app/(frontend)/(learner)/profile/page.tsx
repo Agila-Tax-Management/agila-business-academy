@@ -1,65 +1,135 @@
 // src/app/(frontend)/(learner)/profile/page.tsx
 "use client";
 
-import { useState } from "react";
-import { User, Mail, Lock, Save, Eye, EyeOff } from "lucide-react";
+import { useRef, useState } from "react";
+import Image from "next/image";
+import { User, Mail, Lock, Save, Eye, EyeOff, Camera, Loader2 } from "lucide-react";
 import Card from "@/components/UI/Card";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { authClient } from "@/lib/auth-client";
 
+/* ── Input field styles ─────────────────────────────────────── */
+const inputClass =
+  "w-full h-10 px-3 rounded-xl border border-white/60 bg-white/70 backdrop-blur-sm text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 focus:bg-white/90 transition-all";
+
+/* ── Main page ──────────────────────────────────────────────── */
 export default function ProfilePage(): React.ReactNode {
-  const { user } = useAuth();
-  const { success, error } = useToast();
+  const { user, refreshUser }           = useAuth();
+  const { success, error: toastError }  = useToast();
+  const fileInputRef                    = useRef<HTMLInputElement>(null);
 
-  const [name, setName] = useState(user?.name ?? "");
-  const [saving, setSaving] = useState(false);
+  // Sync name / image from auth user when it first loads
+  const [prevUserId, setPrevUserId] = useState<string | null>(null);
+  const [localName,  setLocalName]  = useState("");
+  const [localImage, setLocalImage] = useState<string | null>(null);
 
+  if ((user?.id ?? null) !== prevUserId) {
+    setPrevUserId(user?.id ?? null);
+    setLocalName(user?.name ?? "");
+    setLocalImage(user?.image ?? null);
+  }
+
+  const [saving,         setSaving]         = useState(false);
+  const [uploading,      setUploading]      = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [newPassword,     setNewPassword]     = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
+  const [showCurrent,     setShowCurrent]     = useState(false);
+  const [showNew,         setShowNew]         = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
+  /* ── Avatar upload ────────────────────────────────────────── */
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Instant preview
+    const preview = URL.createObjectURL(file);
+    setLocalImage(preview);
+    setUploading(true);
+
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      const res  = await fetch("/api/profile/avatar", { method: "POST", body: form });
+      const json = await res.json() as { data?: { imageUrl: string }; error?: string };
+      if (json.error) {
+        toastError("Upload failed", json.error);
+        setLocalImage(user?.image ?? null); // revert on error
+        return;
+      }
+      setLocalImage(json.data!.imageUrl);
+      void refreshUser();
+      success("Avatar updated", "Your profile picture has been saved.");
+    } catch {
+      toastError("Upload failed", "Could not upload image. Please try again.");
+      setLocalImage(user?.image ?? null);
+    } finally {
+      setUploading(false);
+      // Reset file input so the same file can be re-selected if needed
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  /* ── Save profile name ───────────────────────────────────── */
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
-      // TODO: replace with real API call to PATCH /api/profile
-      await new Promise((r) => setTimeout(r, 600));
+      const res  = await fetch("/api/profile", {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ name: localName }),
+      });
+      const json = await res.json() as { data?: { name: string }; error?: string };
+      if (json.error) {
+        toastError("Update failed", json.error);
+        return;
+      }
+      if (json.data) setLocalName(json.data.name);
       success("Profile updated", "Your display name has been saved.");
     } catch {
-      error("Update failed", "Could not save your profile. Please try again.");
+      toastError("Update failed", "Could not save your profile. Please try again.");
     } finally {
       setSaving(false);
     }
   }
 
+  /* ── Change password ─────────────────────────────────────── */
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      error("Passwords don't match", "New password and confirmation must be identical.");
+      toastError("Passwords don't match", "New password and confirmation must be identical.");
       return;
     }
     if (newPassword.length < 8) {
-      error("Password too short", "New password must be at least 8 characters.");
+      toastError("Password too short", "New password must be at least 8 characters.");
       return;
     }
     setChangingPassword(true);
     try {
-      // TODO: replace with real API call to POST /api/profile/change-password
-      await new Promise((r) => setTimeout(r, 600));
+      const { error: authError } = await authClient.changePassword({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: false,
+      });
+      if (authError) {
+        toastError("Change failed", authError.message ?? "Check your current password and try again.");
+        return;
+      }
       success("Password changed", "Your password has been updated successfully.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch {
-      error("Change failed", "Could not update your password. Check your current password and try again.");
+      toastError("Change failed", "Could not update your password. Please try again.");
     } finally {
       setChangingPassword(false);
     }
   }
 
+  /* ── Render ──────────────────────────────────────────────── */
   return (
     <div className="p-6 lg:p-8 max-w-2xl mx-auto space-y-8 animate-fade-up">
 
@@ -71,15 +141,52 @@ export default function ProfilePage(): React.ReactNode {
 
       {/* ── Avatar card ──────────────────────────────────────── */}
       <Card className="p-6 flex items-center gap-5">
-        <div className="w-16 h-16 rounded-2xl gradient-bg flex items-center justify-center text-white font-extrabold text-2xl shrink-0 shadow-[0_4px_14px_rgba(99,102,241,0.35)]">
-          {user?.name?.[0]?.toUpperCase() ?? "U"}
-        </div>
+        {/* Clickable avatar */}
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="relative group shrink-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          aria-label="Change profile picture"
+        >
+          {localImage ? (
+            <Image
+              src={localImage}
+              alt={localName || "Avatar"}
+              width={64}
+              height={64}
+              className="w-16 h-16 rounded-2xl object-cover shadow-[0_4px_14px_rgba(99,102,241,0.35)]"
+              unoptimized={localImage.startsWith("blob:")}
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl gradient-bg flex items-center justify-center text-white font-extrabold text-2xl shadow-[0_4px_14px_rgba(99,102,241,0.35)]">
+              {localName?.[0]?.toUpperCase() ?? "U"}
+            </div>
+          )}
+          {/* Hover / uploading overlay */}
+          <div className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+            {uploading
+              ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+              : <Camera className="w-5 h-5 text-white" />}
+          </div>
+        </button>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
+
         <div>
-          <p className="text-base font-bold text-foreground">{user?.name ?? "—"}</p>
+          <p className="text-base font-bold text-foreground">{localName || user?.name || "—"}</p>
           <p className="text-sm text-muted">{user?.email ?? "—"}</p>
           <span className="mt-1.5 inline-flex text-xs font-bold gradient-bg text-white px-2.5 py-0.5 rounded-full">
             {user?.role ?? "EMPLOYEE"}
           </span>
+          <p className="text-xs text-muted mt-2">Click the photo to change your avatar</p>
         </div>
       </Card>
 
@@ -91,18 +198,22 @@ export default function ProfilePage(): React.ReactNode {
         </h2>
         <form onSubmit={handleSaveProfile} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted uppercase tracking-wide">Display Name</label>
+            <label className="text-xs font-semibold text-muted uppercase tracking-wide">
+              Display Name
+            </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-white/60 bg-white/70 backdrop-blur-sm text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 focus:bg-white/90 transition-all"
+              value={localName}
+              onChange={(e) => setLocalName(e.target.value)}
+              className={inputClass}
               placeholder="Your full name"
               required
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted uppercase tracking-wide">Email Address</label>
+            <label className="text-xs font-semibold text-muted uppercase tracking-wide">
+              Email Address
+            </label>
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-white/60 bg-white/40 backdrop-blur-sm">
               <Mail className="w-4 h-4 text-muted shrink-0" />
               <span className="text-sm text-muted">{user?.email ?? "—"}</span>
@@ -114,7 +225,7 @@ export default function ProfilePage(): React.ReactNode {
             disabled={saving}
             className="inline-flex items-center gap-2 gradient-bg text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-[0_2px_10px_rgba(99,102,241,0.30)] hover:-translate-y-0.5 disabled:opacity-60 transition-all"
           >
-            <Save className="w-4 h-4" />
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? "Saving…" : "Save Changes"}
           </button>
         </form>
@@ -142,12 +253,14 @@ export default function ProfilePage(): React.ReactNode {
             onToggle={() => setShowNew((p) => !p)}
           />
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted uppercase tracking-wide">Confirm New Password</label>
+            <label className="text-xs font-semibold text-muted uppercase tracking-wide">
+              Confirm New Password
+            </label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl border border-white/60 bg-white/70 backdrop-blur-sm text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 focus:bg-white/90 transition-all"
+              className={inputClass}
               placeholder="Re-enter new password"
               required
             />
@@ -157,7 +270,7 @@ export default function ProfilePage(): React.ReactNode {
             disabled={changingPassword}
             className="inline-flex items-center gap-2 gradient-bg text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-[0_2px_10px_rgba(99,102,241,0.30)] hover:-translate-y-0.5 disabled:opacity-60 transition-all"
           >
-            <Lock className="w-4 h-4" />
+            {changingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
             {changingPassword ? "Updating…" : "Update Password"}
           </button>
         </form>
@@ -166,6 +279,7 @@ export default function ProfilePage(): React.ReactNode {
   );
 }
 
+/* ── Password field helper ──────────────────────────────────── */
 function PasswordField({
   label,
   value,

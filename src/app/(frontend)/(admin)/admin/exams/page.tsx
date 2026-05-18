@@ -2,11 +2,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Search, Pencil, Trash2, ClipboardList, ChevronDown, Timer } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ClipboardList, ChevronDown, Timer, ListChecks } from "lucide-react";
 import Card from "@/components/UI/Card";
 import { useToast } from "@/context/ToastContext";
 import type { ExamItem, ExamScope } from "@/app/(backend)/api/exams/route";
 import ExamFormModal from "./components/ExamFormModal";
+import QuestionBuilderModal from "./components/QuestionBuilderModal";
 
 const SCOPE_STYLES: Record<ExamScope, string> = {
   VIDEO:  "bg-info/10 text-info",
@@ -22,8 +23,9 @@ export default function AdminExamsPage(): React.ReactNode {
   const [scopeFilter, setScopeFilter] = useState<ExamScope | "ALL">("ALL");
   const [loading, setLoading]         = useState(true);
   const [deletingId, setDeletingId]   = useState<string | null>(null);
-  const [showModal, setShowModal]     = useState(false);
-  const [editing, setEditing]         = useState<ExamItem | null>(null);
+  const [showModal, setShowModal]         = useState(false);
+  const [editing, setEditing]             = useState<ExamItem | null>(null);
+  const [questionExam, setQuestionExam]   = useState<ExamItem | null>(null);
 
   const fetchExams = useCallback(async () => {
     setLoading(true);
@@ -178,9 +180,16 @@ export default function AdminExamsPage(): React.ReactNode {
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
+                          onClick={() => setQuestionExam(exam)}
+                          className="p-1.5 rounded-lg text-muted hover:text-violet-500 hover:bg-violet-500/10 transition-colors"
+                          title="Edit Questions"
+                        >
+                          <ListChecks className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => { setEditing(exam); setShowModal(true); }}
                           className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary/10 transition-colors"
-                          title="Edit"
+                          title="Edit Exam"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
@@ -208,6 +217,15 @@ export default function AdminExamsPage(): React.ReactNode {
         initial={editing ?? undefined}
         onSuccess={fetchExams}
       />
+
+      {questionExam && (
+        <QuestionBuilderModal
+          isOpen={true}
+          examId={questionExam.id}
+          examTitle={questionExam.title}
+          onClose={() => { setQuestionExam(null); void fetchExams(); }}
+        />
+      )}
     </div>
   );
 }

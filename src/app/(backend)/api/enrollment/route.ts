@@ -1,5 +1,8 @@
 // src/app/(backend)/api/enrollment/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 
 export interface EnrollmentItem {
   id: string;
@@ -9,51 +12,84 @@ export interface EnrollmentItem {
   enrolledAt: string;
 }
 
-const MOCK_ENROLLMENTS: EnrollmentItem[] = [
-  { id: "enr1", userId: "emp1", seriesId: "ser1", seriesTitle: "New Employee Onboarding",     enrolledAt: "2026-01-20T08:00:00Z" },
-  { id: "enr2", userId: "emp1", seriesId: "ser2", seriesTitle: "Safety & Compliance",         enrolledAt: "2026-02-01T08:00:00Z" },
-  { id: "enr3", userId: "emp2", seriesId: "ser1", seriesTitle: "New Employee Onboarding",     enrolledAt: "2026-02-05T08:00:00Z" },
-  { id: "enr4", userId: "emp2", seriesId: "ser2", seriesTitle: "Safety & Compliance",         enrolledAt: "2026-02-10T08:00:00Z" },
-  { id: "enr5", userId: "emp2", seriesId: "ser3", seriesTitle: "Customer Service Excellence", enrolledAt: "2026-03-01T08:00:00Z" },
-  { id: "enr6", userId: "emp3", seriesId: "ser2", seriesTitle: "Safety & Compliance",         enrolledAt: "2026-02-14T08:00:00Z" },
-  { id: "enr7", userId: "emp4", seriesId: "ser1", seriesTitle: "New Employee Onboarding",     enrolledAt: "2026-03-05T08:00:00Z" },
-  { id: "enr8", userId: "emp4", seriesId: "ser3", seriesTitle: "Customer Service Excellence", enrolledAt: "2026-03-15T08:00:00Z" },
-];
-
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  // TODO: replace with real Prisma query
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const url = new URL(request.url);
   const userId = url.searchParams.get("userId");
-  const data = userId
-    ? MOCK_ENROLLMENTS.filter((e) => e.userId === userId)
-    : MOCK_ENROLLMENTS;
-  return NextResponse.json({ data });
+
+  // Learners may only read their own enrollments; admins may read any
+  const isAdmin = session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
+  if (userId && userId !== session.user.id && !isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const enrollments = await prisma.enrollment.findMany({
+      where: userId ? { userId } : isAdmin ? {} : { userId: session.user.id },
+      include: { series: { select: { title: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const data: EnrollmentItem[] = enrollments.map((e) => ({
+      id:          e.id,
+      userId:      e.userId,
+      seriesId:    e.seriesId,
+      seriesTitle: e.series.title,
+      enrolledAt:  e.createdAt.toISOString(),
+    }));
+
+    return NextResponse.json({ data });
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch enrollments." }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const isAdmin = session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
+  if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   try {
-    const body = await request.json() as { userId?: string; seriesId?: string; seriesTitle?: string };
-    const { userId, seriesId, seriesTitle } = body;
+    const body = await request.json() as { userId?: string; seriesId?: string };
+    const { userId, seriesId } = body;
 
     if (!userId || !seriesId) {
       return NextResponse.json({ error: "userId and seriesId are required." }, { status: 400 });
     }
 
-    const exists = MOCK_ENROLLMENTS.find((e) => e.userId === userId && e.seriesId === seriesId);
-    if (exists) {
+    // Verify the series exists and get its title
+    const series = await prisma.series.findUnique({
+      where: { id: seriesId },
+      select: { title: true },
+    });
+    if (!series) return NextResponse.json({ error: "Series not found." }, { status: 404 });
+
+    // Check for existing enrollment
+    const existing = await prisma.enrollment.findUnique({
+      where: { userId_seriesId: { userId, seriesId } },
+    });
+    if (existing) {
       return NextResponse.json({ error: "Employee is already enrolled in this series." }, { status: 409 });
     }
 
-    const newEnrollment: EnrollmentItem = {
-      id:          crypto.randomUUID(),
-      userId,
-      seriesId,
-      seriesTitle: seriesTitle ?? "Unknown Series",
-      enrolledAt:  new Date().toISOString(),
+    const enrollment = await prisma.enrollment.create({
+      data: { userId, seriesId },
+      include: { series: { select: { title: true } } },
+    });
+
+    const data: EnrollmentItem = {
+      id:          enrollment.id,
+      userId:      enrollment.userId,
+      seriesId:    enrollment.seriesId,
+      seriesTitle: enrollment.series.title,
+      enrolledAt:  enrollment.createdAt.toISOString(),
     };
 
-    // TODO: real prisma.enrollment.create
-    return NextResponse.json({ data: newEnrollment }, { status: 201 });
+    return NextResponse.json({ data }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Failed to enroll employee." }, { status: 500 });
   }

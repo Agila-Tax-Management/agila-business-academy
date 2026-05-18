@@ -2,7 +2,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, UserPlus, BookOpen, Users, ShieldCheck, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { Search, UserPlus, BookOpen, Users, ShieldCheck, Trash2, GraduationCap } from "lucide-react";
 import { useToast } from "@/context/ToastContext";
 import type { EmployeeItem } from "@/app/(backend)/api/employees/route";
 import AddEmployeeModal from "./components/AddEmployeeModal";
@@ -144,10 +145,12 @@ export default function AdminEmployeesPage(): React.ReactNode {
         </select>
       </div>
 
-      {/* Table */}
+      {/* Employee Cards */}
       {loading ? (
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => <div key={i} className="h-14 glass rounded-2xl animate-pulse" />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="glass rounded-2xl p-5 h-52 animate-pulse" />
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -156,71 +159,70 @@ export default function AdminEmployeesPage(): React.ReactNode {
           <p className="text-xs text-muted mt-1">Try adjusting your search or add a new employee.</p>
         </div>
       ) : (
-        <div className="glass rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/30">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Employee</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide hidden sm:table-cell">Role</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide hidden md:table-cell">Enrolled</th>
-                <th className="text-center px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide hidden lg:table-cell">Completed</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide hidden lg:table-cell">Last Login</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wide">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/20">
-              {filtered.map((emp) => (
-                <tr key={emp.id} className="hover:bg-white/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center text-white font-bold text-sm shrink-0">
-                        {emp.name[0].toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-foreground truncate">{emp.name}</p>
-                        <p className="text-xs text-muted truncate">{emp.email}</p>
-                      </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filtered.map((emp) => (
+            <div key={emp.id} className="glass rounded-2xl p-5 flex flex-col gap-3">
+              {/* Top row: avatar + delete */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  {emp.image ? (
+                    <Image
+                      src={emp.image}
+                      alt={emp.name}
+                      width={44}
+                      height={44}
+                      className="w-11 h-11 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full gradient-bg flex items-center justify-center text-white font-bold text-base shrink-0">
+                      {emp.name[0].toUpperCase()}
                     </div>
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_STYLES[emp.role]}`}>
-                      {ROLE_LABELS[emp.role]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center hidden md:table-cell">
-                    <span className="font-medium text-foreground">{emp.enrolledSeries}</span>
-                    <span className="text-muted ml-1 text-xs">series</span>
-                  </td>
-                  <td className="px-4 py-3 text-center hidden lg:table-cell">
-                    <span className="font-medium text-foreground">{emp.completedSeries}</span>
-                    <span className="text-muted ml-1 text-xs">done</span>
-                  </td>
-                  <td className="px-4 py-3 text-right text-xs text-muted hidden lg:table-cell">
-                    {emp.lastLogin ? new Date(emp.lastLogin).toLocaleDateString() : "Never"}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => setEnrollTarget({ id: emp.id, name: emp.name })}
-                        className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary/10 transition-colors"
-                        title="Manage enrollments"
-                      >
-                        <BookOpen className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(emp)}
-                        disabled={deletingId === emp.id}
-                        className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors disabled:opacity-40"
-                        title="Delete employee"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground text-sm truncate">{emp.name}</p>
+                    <p className="text-xs text-muted truncate">{emp.email}</p>
+                    {emp.position && (
+                      <p className="text-xs text-muted/70 truncate mt-0.5">{emp.position}</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDelete(emp)}
+                  disabled={deletingId === emp.id}
+                  className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors shrink-0 disabled:opacity-40"
+                  title="Delete employee"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Role badge */}
+              <span className={`self-start text-xs font-semibold px-2 py-0.5 rounded-full ${ROLE_STYLES[emp.role]}`}>
+                {ROLE_LABELS[emp.role]}
+              </span>
+
+              {/* Stats */}
+              <div className="flex gap-4 text-xs border-t border-white/20 pt-3">
+                <div>
+                  <p className="font-bold text-foreground text-sm">{emp.enrolledSeries}</p>
+                  <p className="text-muted">Enrolled</p>
+                </div>
+                <div>
+                  <p className="font-bold text-foreground text-sm">{emp.completedSeries}</p>
+                  <p className="text-muted">Completed</p>
+                </div>
+              </div>
+
+              {/* Assign Classes */}
+              <button
+                onClick={() => setEnrollTarget({ id: emp.id, name: emp.name })}
+                className="mt-auto flex items-center justify-center gap-2 w-full py-2 rounded-xl text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+              >
+                <GraduationCap className="w-4 h-4" />
+                Assign Classes
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

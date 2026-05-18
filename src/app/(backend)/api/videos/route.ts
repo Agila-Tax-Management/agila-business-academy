@@ -78,8 +78,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { title, description, moduleId, order, videoUrl, cloudinaryPublicId, durationSeconds } = parsed.data;
 
   try {
-    const module = await prisma.module.findUnique({ where: { id: moduleId } });
-    if (!module) return NextResponse.json({ error: "Module not found" }, { status: 404 });
+    const parentModule = await prisma.module.findUnique({ where: { id: moduleId } });
+    if (!parentModule) return NextResponse.json({ error: "Module not found" }, { status: 404 });
 
     const video = await prisma.video.create({
       data: { title, description, moduleId, order, videoUrl, cloudinaryPublicId, durationSeconds },

@@ -1,5 +1,8 @@
 // src/app/(backend)/api/employees/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 
 export type EmployeeRole = "EMPLOYEE" | "ADMIN" | "SUPER_ADMIN";
 
@@ -7,6 +10,8 @@ export interface EmployeeItem {
   id: string;
   name: string;
   email: string;
+  image: string | null;
+  position: string | null;
   role: EmployeeRole;
   enrolledSeries: number;
   completedSeries: number;
@@ -14,21 +19,39 @@ export interface EmployeeItem {
   createdAt: string;
 }
 
-const MOCK_EMPLOYEES: EmployeeItem[] = [
-  { id: "emp1", name: "Juan dela Cruz",  email: "juan@agila.ph",   role: "EMPLOYEE",   enrolledSeries: 2, completedSeries: 1, lastLogin: "2026-05-07T09:00:00Z", createdAt: "2026-01-15T08:00:00Z" },
-  { id: "emp2", name: "Maria Santos",    email: "maria@agila.ph",  role: "EMPLOYEE",   enrolledSeries: 3, completedSeries: 0, lastLogin: "2026-05-06T15:30:00Z", createdAt: "2026-02-01T08:00:00Z" },
-  { id: "emp3", name: "Carlo Reyes",     email: "carlo@agila.ph",  role: "EMPLOYEE",   enrolledSeries: 1, completedSeries: 1, lastLogin: "2026-05-05T10:00:00Z", createdAt: "2026-02-14T08:00:00Z" },
-  { id: "emp4", name: "Ana Villanueva",  email: "ana@agila.ph",    role: "EMPLOYEE",   enrolledSeries: 2, completedSeries: 2, lastLogin: "2026-05-07T11:00:00Z", createdAt: "2026-03-01T08:00:00Z" },
-  { id: "emp5", name: "Ramon Espiritu", email: "ramon@agila.ph",  role: "EMPLOYEE",   enrolledSeries: 0, completedSeries: 0, lastLogin: null,                   createdAt: "2026-04-10T08:00:00Z" },
-  { id: "adm1", name: "Admin User",      email: "admin@agila.ph",  role: "ADMIN",      enrolledSeries: 0, completedSeries: 0, lastLogin: "2026-05-07T08:00:00Z", createdAt: "2026-01-01T08:00:00Z" },
-];
-
 export async function GET(_request: NextRequest): Promise<NextResponse> {
-  // TODO: replace with real Prisma query after auth guard
-  // const session = await auth.api.getSession({ headers: await headers() });
-  // if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  // const users = await prisma.user.findMany({ include: { _count: { select: { enrollments: true, seriesCompletions: true } } } });
-  return NextResponse.json({ data: MOCK_EMPLOYEES });
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: "asc" },
+      include: {
+        _count: { select: { enrollments: true, seriesCompletions: true } },
+        sessions: { orderBy: { updatedAt: "desc" }, take: 1, select: { updatedAt: true } },
+      },
+    });
+
+    const data: EmployeeItem[] = users.map((u) => ({
+      id:              u.id,
+      name:            u.name,
+      email:           u.email,
+      image:           u.image ?? null,
+      position:        u.position ?? null,
+      role:            u.role as EmployeeRole,
+      enrolledSeries:  u._count.enrollments,
+      completedSeries: u._count.seriesCompletions,
+      lastLogin:       u.sessions[0]?.updatedAt.toISOString() ?? null,
+      createdAt:       u.createdAt.toISOString(),
+    }));
+
+    return NextResponse.json({ data });
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch employees." }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -44,6 +67,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       id:              crypto.randomUUID(),
       name:            name.trim(),
       email:           email.trim().toLowerCase(),
+      image:           null,
+      position:        null,
       role:            role ?? "EMPLOYEE",
       enrolledSeries:  0,
       completedSeries: 0,

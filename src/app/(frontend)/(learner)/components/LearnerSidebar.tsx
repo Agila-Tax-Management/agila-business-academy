@@ -2,9 +2,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Library, BarChart3, Award, Settings,
+  LayoutDashboard, Library, BarChart3, Award,
   X, ShieldCheck, ChevronLeft, ChevronRight, Bookmark,
   Trophy, Search,
 } from "lucide-react";
@@ -68,22 +69,44 @@ export default function LearnerSidebar({ open, onClose, collapsed, onToggleColla
         `}
       >
         {/* Logo */}
-        <div
-          className={`flex items-center py-5 border-b border-white/30 shrink-0
-            ${collapsed ? "lg:justify-center px-5 lg:px-3" : "justify-between px-5"}`}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl gradient-bg flex items-center justify-center shadow-[0_4px_12px_rgba(99,102,241,0.35)] shrink-0">
-              <span className="text-white font-bold text-sm">A</span>
+        <div className={`flex items-center py-4 border-b border-white/30 shrink-0 ${collapsed ? "lg:px-2 lg:justify-between px-4 justify-between" : "px-4 justify-between"}`}>
+          {/* Logo icon + text */}
+          <div className="flex items-center gap-2.5">
+            <div className="shrink-0 w-8 h-8">
+              <Image
+                src="/image/agila_icon.ico"
+                alt="Agila"
+                width={32}
+                height={32}
+                unoptimized
+                className="w-full h-full object-contain"
+                priority
+              />
             </div>
             <div className={collapsed ? "lg:hidden" : ""}>
-              <p className="text-foreground font-bold text-sm leading-tight">Agila</p>
+              <p className="text-foreground font-bold text-sm leading-tight">AGILA</p>
               <p className="text-muted text-[10px] tracking-widest uppercase">Business Academy</p>
             </div>
           </div>
-          <button onClick={onClose} className="lg:hidden text-muted hover:text-foreground transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Mobile close */}
+            <button
+              onClick={onClose}
+              className="lg:hidden p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-white/60 transition-colors"
+              aria-label="Close sidebar"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            {/* Desktop collapse toggle */}
+            <button
+              onClick={onToggleCollapse}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="hidden lg:flex items-center justify-center p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-white/60 transition-colors"
+            >
+              {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
         {/* Nav */}
@@ -134,29 +157,7 @@ export default function LearnerSidebar({ open, onClose, collapsed, onToggleColla
           )}
         </nav>
 
-        {/* Footer */}
-        <div className="shrink-0 border-t border-white/30 px-3 py-3 flex flex-col gap-1">
-          <Link
-            href="/profile"
-            onClick={onClose}
-            title={collapsed ? "Settings" : undefined}
-            className={`flex items-center rounded-xl text-sm font-medium transition-all text-sidebar-muted hover:text-foreground hover:bg-white/60
-              ${collapsed ? "lg:justify-center lg:px-0 lg:py-3 gap-3 px-3 py-2.5" : "gap-3 px-3 py-2.5"}`}
-          >
-            <Settings className="w-5 h-5 shrink-0" />
-            <span className={collapsed ? "lg:hidden" : ""}>Settings</span>
-          </Link>
 
-          {/* Collapse toggle — desktop only */}
-          <button
-            onClick={onToggleCollapse}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className={`hidden lg:flex items-center rounded-xl text-xs text-sidebar-muted hover:text-foreground hover:bg-white/60 transition-all
-              ${collapsed ? "justify-center px-0 py-3" : "gap-3 px-3 py-2.5"}`}
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <><ChevronLeft className="w-4 h-4" /><span>Collapse</span></>}
-          </button>
-        </div>
       </aside>
     </>
   );

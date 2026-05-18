@@ -2,35 +2,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award, Download, Calendar, BadgeCheck, Trophy } from "lucide-react";
-
-interface Certificate {
-  id: string;
-  seriesTitle: string;
-  issuedAt: string;
-  credentialId: string;
-}
-
-const MOCK: Certificate[] = [
-  {
-    id: "cert-1",
-    seriesTitle: "New Employee Onboarding",
-    issuedAt: "2026-05-01",
-    credentialId: "ABA-2026-0001",
-  },
-];
+import { Award, ExternalLink, Calendar, BadgeCheck, Trophy } from "lucide-react";
+import type { CertificateItem } from "@/app/(backend)/api/certificates/route";
 
 export default function CertificatesPage(): React.ReactNode {
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [certificates, setCertificates] = useState<CertificateItem[]>([]);
+  const [loading,      setLoading]      = useState(true);
 
   useEffect(() => {
-    // TODO: replace with real API call to /api/certificates
-    const timer = setTimeout(() => {
-      setCertificates(MOCK);
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
+    fetch("/api/certificates")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.data?.certificates)) setCertificates(data.data.certificates);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
@@ -107,12 +92,17 @@ export default function CertificatesPage(): React.ReactNode {
                 </p>
               </div>
 
-              {/* Download */}
+              {/* View / Print */}
               <div className="px-5 pb-4">
-                <button className="w-full flex items-center justify-center gap-2 glass text-primary text-sm font-semibold py-2.5 rounded-xl hover:bg-primary hover:text-white transition-all duration-150 border border-primary/20">
-                  <Download className="w-4 h-4" />
-                  Download PDF
-                </button>
+                <a
+                  href={`/certificates/${cert.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 glass text-primary text-sm font-semibold py-2.5 rounded-xl hover:bg-primary hover:text-white transition-all duration-150 border border-primary/20"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  View &amp; Print
+                </a>
               </div>
             </div>
           ))}

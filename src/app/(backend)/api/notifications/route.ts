@@ -25,7 +25,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       where: { recipientId: session.user.id, readAt: null },
     });
 
-    return NextResponse.json({ data: { notifications, unreadCount } });
+    return NextResponse.json({
+      data: {
+        notifications: notifications.map((n) => ({
+          id:        n.id,
+          type:      n.type,
+          priority:  n.priority,
+          title:     n.title,
+          message:   n.message,
+          entity:    n.entity ?? null,
+          entityId:  n.entityId ?? null,
+          actionUrl: n.actionUrl ?? null,
+          isRead:    n.readAt !== null,
+          readAt:    n.readAt?.toISOString() ?? null,
+          createdAt: n.createdAt.toISOString(),
+        })),
+        unreadCount,
+      },
+    });
   } catch {
     return NextResponse.json({ error: "Failed to fetch notifications" }, { status: 500 });
   }

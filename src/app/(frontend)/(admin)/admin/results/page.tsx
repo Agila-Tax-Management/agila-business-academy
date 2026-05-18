@@ -2,9 +2,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, CheckCircle2, XCircle, Clock, ChevronDown, BarChart3 } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Clock, ChevronDown, BarChart3, ClipboardEdit } from "lucide-react";
 import Card from "@/components/UI/Card";
 import { useToast } from "@/context/ToastContext";
+import GradeModal from "./components/GradeModal";
 import type { AttemptItem } from "@/app/(backend)/api/attempts/route";
 
 type ScopeFilter = "ALL" | "VIDEO" | "MODULE" | "SERIES";
@@ -22,26 +23,30 @@ export default function AdminResultsPage(): React.ReactNode {
   const [search, setSearch]           = useState("");
   const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("ALL");
   const [passFilter, setPassFilter]   = useState<"ALL" | "PASSED" | "FAILED">("ALL");
+  const [reviewFilter, setReviewFilter] = useState<"ALL" | "PENDING">("ALL");
   const [loading, setLoading]         = useState(true);
+  const [reviewAttemptId, setReviewAttemptId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  function fetchResults() {
     setLoading(true);
     fetch("/api/attempts")
       .then((r) => r.json())
-      .then((d: { data?: AttemptItem[] }) => { if (!cancelled) setResults(d.data ?? []); })
-      .catch(() => { if (!cancelled) error("Load failed", "Could not load exam results."); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [error]);
+      .then((d: { data?: AttemptItem[] }) => { setResults(d.data ?? []); })
+      .catch(() => { error("Load failed", "Could not load exam results."); })
+      .finally(() => { setLoading(false); });
+  }
+  useEffect(() => { fetchResults(); }, [error]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pendingCount = results.filter((r) => r.hasPendingReview).length;
 
   const filtered = results.filter((r) => {
     const matchSearch =
       r.employeeName.toLowerCase().includes(search.toLowerCase()) ||
       r.examTitle.toLowerCase().includes(search.toLowerCase());
-    const matchScope = scopeFilter === "ALL" || r.scope === scopeFilter;
-    const matchPass = passFilter === "ALL" || (passFilter === "PASSED" ? r.passed : !r.passed);
-    return matchSearch && matchScope && matchPass;
+    const matchScope  = scopeFilter === "ALL"     || r.scope === scopeFilter;
+    const matchPass   = passFilter  === "ALL"     || (passFilter === "PASSED" ? r.passed : !r.passed);
+    const matchReview = reviewFilter === "ALL"    || r.hasPendingReview;
+    return matchSearch && matchScope && matchPass && matchReview;
   });
 
   const totalPassed = results.filter((r) => r.passed).length;
@@ -79,8 +84,11 @@ export default function AdminResultsPage(): React.ReactNode {
           <p className="text-xs text-muted mt-0.5">Failed</p>
         </div>
         <div className="glass rounded-2xl p-4 text-center">
-          <p className="text-2xl font-bold gradient-text">{passRate}%</p>
-          <p className="text-xs text-muted mt-0.5">Pass Rate</p>
+          <div className="w-8 h-8 rounded-xl bg-warning/10 flex items-center justify-center mx-auto mb-2">
+            <ClipboardEdit className="w-4 h-4 text-warning" />
+          </div>
+          <p className="text-2xl font-bold text-warning">{pendingCount}</p>
+          <p className="text-xs text-muted mt-0.5">Pending Review</p>
         </div>
       </div>
 
@@ -121,6 +129,17 @@ export default function AdminResultsPage(): React.ReactNode {
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
         </div>
+        <div className="relative">
+          <select
+            value={reviewFilter}
+            onChange={(e) => setReviewFilter(e.target.value as "ALL" | "PENDING")}
+            className="appearance-none h-10 pl-3 pr-8 rounded-xl border border-white/60 bg-white/60 backdrop-blur-sm text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer transition-all"
+          >
+            <option value="ALL">All</option>
+            <option value="PENDING">Needs Review</option>
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+        </div>
       </div>
 
       {/* Table */}
@@ -141,12 +160,13 @@ export default function AdminResultsPage(): React.ReactNode {
                   <th className="text-center px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Status</th>
                   <th className="text-center px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">Attempt #</th>
                   <th className="text-right px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">Date</th>
+                  <th className="text-center px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Review</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/20">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-muted text-sm">
+                    <td colSpan={8} className="px-5 py-12 text-center text-muted text-sm">
                       No results match your filters.
                     </td>
                   </tr>
@@ -181,6 +201,19 @@ export default function AdminResultsPage(): React.ReactNode {
                         {r.submittedAt ? new Date(r.submittedAt).toLocaleDateString() : "—"}
                       </span>
                     </td>
+                    <td className="px-5 py-3.5 text-center">
+                      {r.hasPendingReview ? (
+                        <button
+                          type="button"
+                          onClick={() => setReviewAttemptId(r.id)}
+                          className="inline-flex items-center gap-1 text-xs bg-warning/10 text-warning border border-warning/30 px-2.5 py-1 rounded-full font-semibold hover:bg-warning/20 transition-colors"
+                        >
+                          <ClipboardEdit className="w-3 h-3" /> Review
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -188,6 +221,12 @@ export default function AdminResultsPage(): React.ReactNode {
           </div>
         </Card>
       )}
+
+      <GradeModal
+        attemptId={reviewAttemptId}
+        onClose={() => setReviewAttemptId(null)}
+        onSaved={() => fetchResults()}
+      />
     </div>
   );
 }

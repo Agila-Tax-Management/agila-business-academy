@@ -13,15 +13,6 @@ interface SeriesOption {
   title: string;
 }
 
-// Mock series list — TODO: fetch from /api/series when real API is available
-const AVAILABLE_SERIES: SeriesOption[] = [
-  { id: "ser1", title: "New Employee Onboarding" },
-  { id: "ser2", title: "Safety & Compliance" },
-  { id: "ser3", title: "Customer Service Excellence" },
-  { id: "ser4", title: "Leadership Fundamentals" },
-  { id: "ser5", title: "Digital Tools & Systems" },
-];
-
 interface EnrollModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -32,8 +23,10 @@ export default function EnrollModal({ isOpen, onClose, employee }: EnrollModalPr
   const { success, error } = useToast();
 
   const [enrollments,       setEnrollments]       = useState<EnrollmentItem[]>([]);
+  const [allSeries,         setAllSeries]          = useState<SeriesOption[]>([]);
   const [selectedSeriesId,  setSelectedSeriesId]  = useState("");
   const [loadingList,       setLoadingList]        = useState(false);
+  const [loadingSeries,     setLoadingSeries]      = useState(false);
   const [enrolling,         setEnrolling]          = useState(false);
   const [removingId,        setRemovingId]         = useState<string | null>(null);
 
@@ -43,7 +36,7 @@ export default function EnrollModal({ isOpen, onClose, employee }: EnrollModalPr
   if (currentKey !== prevKey) {
     setPrevKey(currentKey);
     setSelectedSeriesId("");
-    if (!isOpen) setEnrollments([]);
+    if (!isOpen) { setEnrollments([]); setAllSeries([]); }
   }
 
   // Fetch enrollments when modal opens
@@ -61,12 +54,27 @@ export default function EnrollModal({ isOpen, onClose, employee }: EnrollModalPr
     return () => { cancelled = true; };
   }, [isOpen, employee?.id, error]);
 
+  // Fetch all series when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setLoadingSeries(true);
+    fetch("/api/series")
+      .then((r) => r.json())
+      .then((d: { data?: { id: string; title: string }[] }) => {
+        if (!cancelled) setAllSeries((d.data ?? []).map((s) => ({ id: s.id, title: s.title })));
+      })
+      .catch(() => { /* non-critical — dropdown stays empty */ })
+      .finally(() => { if (!cancelled) setLoadingSeries(false); });
+    return () => { cancelled = true; };
+  }, [isOpen]);
+
   const enrolledIds = new Set(enrollments.map((e) => e.seriesId));
-  const unrolledSeries = AVAILABLE_SERIES.filter((s) => !enrolledIds.has(s.id));
+  const unrolledSeries = allSeries.filter((s) => !enrolledIds.has(s.id));
 
   async function handleEnroll() {
     if (!selectedSeriesId || !employee) return;
-    const series = AVAILABLE_SERIES.find((s) => s.id === selectedSeriesId);
+    const series = allSeries.find((s) => s.id === selectedSeriesId);
     if (!series) return;
 
     setEnrolling(true);
@@ -150,7 +158,7 @@ export default function EnrollModal({ isOpen, onClose, employee }: EnrollModalPr
         </div>
 
         {/* Enroll in new series */}
-        {unrolledSeries.length > 0 && (
+        {(loadingSeries || unrolledSeries.length > 0) && (
           <div>
             <h3 className="text-sm font-semibold text-foreground mb-2">Enroll in Series</h3>
             <div className="flex gap-2">
@@ -158,9 +166,10 @@ export default function EnrollModal({ isOpen, onClose, employee }: EnrollModalPr
                 <select
                   value={selectedSeriesId}
                   onChange={(e) => setSelectedSeriesId(e.target.value)}
-                  className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  disabled={loadingSeries}
+                  className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
                 >
-                  <option value="">Select a series…</option>
+                  <option value="">{loadingSeries ? "Loading series…" : "Select a series…"}</option>
                   {unrolledSeries.map((s) => (
                     <option key={s.id} value={s.id}>{s.title}</option>
                   ))}
@@ -170,7 +179,7 @@ export default function EnrollModal({ isOpen, onClose, employee }: EnrollModalPr
               <Button
                 variant="primary"
                 loading={enrolling}
-                disabled={!selectedSeriesId || enrolling}
+                disabled={!selectedSeriesId || enrolling || loadingSeries}
                 onClick={handleEnroll}
               >
                 <Plus className="w-4 h-4" />
@@ -180,7 +189,7 @@ export default function EnrollModal({ isOpen, onClose, employee }: EnrollModalPr
           </div>
         )}
 
-        {unrolledSeries.length === 0 && enrollments.length > 0 && (
+        {!loadingSeries && unrolledSeries.length === 0 && enrollments.length > 0 && (
           <p className="text-xs text-muted text-center py-2">
             This employee is enrolled in all available series.
           </p>

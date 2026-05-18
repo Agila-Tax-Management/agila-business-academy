@@ -115,7 +115,7 @@ export default function DashboardPage(): React.ReactNode {
             </div>
             <h1 className="text-2xl lg:text-3xl font-extrabold text-white leading-tight">
               {greetingText},{" "}
-              <span className="text-white/90">{user?.name?.split(" ")[0] ?? "there"} 👋</span>
+              <span className="text-white/90">{user?.name?.split(" ")[0] ?? "there"}</span>
             </h1>
             <p className="mt-2 text-white/70 text-sm max-w-md">
               {inProgress.length > 0

@@ -85,12 +85,13 @@ model ExamAttempt {
 }
 
 model ExamAnswer {
-  id         String @id @default(cuid())
-  attemptId  String
-  questionId String
-  choiceId   String?
-  textAnswer String?
-  createdAt  DateTime @default(now())
+  id                String   @id @default(cuid())
+  attemptId         String
+  questionId        String
+  choiceId          String?
+  textAnswer        String?
+  isManuallyCorrect Boolean?  // null = pending review, true/false = graded (SHORT_ANSWER only)
+  createdAt         DateTime @default(now())
 
   attempt  ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)

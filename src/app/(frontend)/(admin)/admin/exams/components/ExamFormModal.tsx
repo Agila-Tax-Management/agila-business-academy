@@ -7,6 +7,7 @@ import Button from "@/components/UI/Button";
 import Input from "@/components/UI/Input";
 import { useToast } from "@/context/ToastContext";
 import type { ExamItem, ExamScope } from "@/app/(backend)/api/exams/route";
+import QuestionBuilderModal from "./QuestionBuilderModal";
 
 interface LinkedOption {
   id: string;
@@ -29,17 +30,21 @@ export default function ExamFormModal({
   const { success, error } = useToast();
   const isEdit = !!initial?.id;
 
-  const [title, setTitle]         = useState(initial?.title ?? "");
-  const [scope, setScope]         = useState<ExamScope>(initial?.scope ?? "VIDEO");
-  const [linkedId, setLinkedId]   = useState(initial?.linkedId ?? "");
+  const [title, setTitle]          = useState(initial?.title ?? "");
+  const [scope, setScope]          = useState<ExamScope>(initial?.scope ?? "VIDEO");
+  const [linkedId, setLinkedId]    = useState(initial?.linkedId ?? "");
   const [passingScore, setPassing] = useState(initial?.passingScore ?? 75);
-  const [maxAttempts, setMaxAtt]  = useState(initial?.maxAttempts ?? 0);
-  const [timeLimitMin, setTime]   = useState<number | "">(initial?.timeLimitMin ?? "");
-  const [saving, setSaving]       = useState(false);
+  const [maxAttempts, setMaxAtt]   = useState(initial?.maxAttempts ?? 0);
+  const [timeLimitMin, setTime]    = useState<number | "">(initial?.timeLimitMin ?? "");
+  const [saving, setSaving]        = useState(false);
 
-  const [series,  setSeries]  = useState<LinkedOption[]>([]);
-  const [modules, setModules] = useState<LinkedOption[]>([]);
-  const [videos,  setVideos]  = useState<LinkedOption[]>([]);
+  // After exam creation, open question builder
+  const [builderExamId,    setBuilderExamId]    = useState<string | null>(null);
+  const [builderExamTitle, setBuilderExamTitle] = useState("");
+
+  const [series,      setSeries]      = useState<LinkedOption[]>([]);
+  const [modules,     setModules]     = useState<LinkedOption[]>([]);
+  const [videos,      setVideos]      = useState<LinkedOption[]>([]);
   const [loadingOpts, setLoadingOpts] = useState(false);
 
   // Reset form when modal opens
@@ -53,6 +58,8 @@ export default function ExamFormModal({
       setPassing(initial?.passingScore ?? 75);
       setMaxAtt(initial?.maxAttempts ?? 0);
       setTime(initial?.timeLimitMin ?? "");
+      setBuilderExamId(null);
+      setBuilderExamTitle("");
     }
   }
 
@@ -100,11 +107,18 @@ export default function ExamFormModal({
           timeLimitMin: timeLimitMin === "" ? null : Number(timeLimitMin),
         }),
       });
-      const data = await res.json() as { error?: string };
+      const data = await res.json() as { data?: ExamItem; error?: string };
       if (!res.ok) { error("Save failed", data.error ?? "Something went wrong."); return; }
-      success(isEdit ? "Exam updated" : "Exam created", `"${title}" has been saved.`);
+
       onSuccess();
-      onClose();
+
+      if (!isEdit && data.data?.id) {
+        setBuilderExamId(data.data.id);
+        setBuilderExamTitle(data.data.title);
+      } else {
+        success(isEdit ? "Exam updated" : "Exam created", `"${title}" has been saved.`);
+        onClose();
+      }
     } catch {
       error("Save failed", "An unexpected error occurred.");
     } finally {
@@ -113,100 +127,115 @@ export default function ExamFormModal({
   }
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isEdit ? "Edit Exam" : "New Exam"}
-      size="md"
-      footer={
-        <>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={handleSubmit} loading={saving}>
-            {isEdit ? "Save Changes" : "Create Exam"}
-          </Button>
-        </>
-      }
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input
-          label="Exam Title"
-          placeholder="e.g. Company Policies Quiz"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-
-        {/* Scope selector */}
-        <div>
-          <label className="text-sm font-medium text-foreground mb-1.5 block">Scope</label>
-          <div className="flex gap-2">
-            {(["VIDEO", "MODULE", "SERIES"] as ExamScope[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => { setScope(s); setLinkedId(""); }}
-                className={`flex-1 py-2 text-sm font-medium rounded-xl border transition-colors ${
-                  scope === s
-                    ? "gradient-bg text-white border-transparent shadow-[0_2px_8px_rgba(99,102,241,0.25)]"
-                    : "border-white/50 bg-white/40 text-muted hover:text-foreground hover:bg-white/60"
-                }`}
-              >
-                {s.charAt(0) + s.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Linked entity dropdown */}
-        <div>
-          <label className="text-sm font-medium text-foreground mb-1.5 block">
-            Linked {scope.charAt(0) + scope.slice(1).toLowerCase()}
-          </label>
-          {loadingOpts ? (
-            <div className="h-10 rounded-xl bg-white/40 animate-pulse" />
-          ) : (
-            <select
-              value={linkedId}
-              onChange={(e) => setLinkedId(e.target.value)}
-              className="w-full h-10 rounded-xl border border-white/60 bg-white/60 backdrop-blur-sm text-sm text-foreground px-3 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-              required
-            >
-              <option value="">Select a {scope.toLowerCase()}…</option>
-              {linkedOptions.map((o) => (
-                <option key={o.id} value={o.id}>{o.title}</option>
-              ))}
-            </select>
-          )}
-        </div>
-
-        {/* Passing score + max attempts */}
-        <div className="grid grid-cols-2 gap-3">
+    <>
+      <Modal
+        isOpen={isOpen && !builderExamId}
+        onClose={onClose}
+        title={isEdit ? "Edit Exam" : "New Exam"}
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button onClick={handleSubmit} loading={saving}>
+              {isEdit ? "Save Changes" : "Create & Add Questions"}
+            </Button>
+          </>
+        }
+      >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
-            label="Passing Score (%)"
+            label="Exam Title"
+            placeholder="e.g. Company Policies Quiz"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+
+          {/* Scope selector */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">Scope</label>
+            <div className="flex gap-2">
+              {(["VIDEO", "MODULE", "SERIES"] as ExamScope[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => { setScope(s); setLinkedId(""); }}
+                  className={`flex-1 py-2 text-sm font-medium rounded-xl border transition-colors ${
+                    scope === s
+                      ? "gradient-bg text-white border-transparent shadow-[0_2px_8px_rgba(99,102,241,0.25)]"
+                      : "border-white/50 bg-white/40 text-muted hover:text-foreground hover:bg-white/60"
+                  }`}
+                >
+                  {s.charAt(0) + s.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Linked entity dropdown */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">
+              Linked {scope.charAt(0) + scope.slice(1).toLowerCase()}
+            </label>
+            {loadingOpts ? (
+              <div className="h-10 rounded-xl bg-white/40 animate-pulse" />
+            ) : (
+              <select
+                value={linkedId}
+                onChange={(e) => setLinkedId(e.target.value)}
+                className="w-full h-10 rounded-xl border border-white/60 bg-white/60 backdrop-blur-sm text-sm text-foreground px-3 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                required
+              >
+                <option value="">Select a {scope.toLowerCase()}…</option>
+                {linkedOptions.map((o) => (
+                  <option key={o.id} value={o.id}>{o.title}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Passing score + max attempts */}
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Passing Score (%)"
+              type="number"
+              min={1}
+              max={100}
+              value={passingScore}
+              onChange={(e) => setPassing(Number(e.target.value))}
+            />
+            <Input
+              label="Max Attempts (0 = ∞)"
+              type="number"
+              min={0}
+              value={maxAttempts}
+              onChange={(e) => setMaxAtt(Number(e.target.value))}
+            />
+          </div>
+
+          <Input
+            label="Time Limit (minutes, optional)"
             type="number"
             min={1}
-            max={100}
-            value={passingScore}
-            onChange={(e) => setPassing(Number(e.target.value))}
+            placeholder="Leave blank for no time limit"
+            value={timeLimitMin}
+            onChange={(e) => setTime(e.target.value === "" ? "" : Number(e.target.value))}
           />
-          <Input
-            label="Max Attempts (0 = ∞)"
-            type="number"
-            min={0}
-            value={maxAttempts}
-            onChange={(e) => setMaxAtt(Number(e.target.value))}
-          />
-        </div>
+        </form>
+      </Modal>
 
-        <Input
-          label="Time Limit (minutes, optional)"
-          type="number"
-          min={1}
-          placeholder="Leave blank for no time limit"
-          value={timeLimitMin}
-          onChange={(e) => setTime(e.target.value === "" ? "" : Number(e.target.value))}
+      {builderExamId && (
+        <QuestionBuilderModal
+          isOpen={true}
+          examId={builderExamId}
+          examTitle={builderExamTitle}
+          onClose={() => {
+            success("Exam created", `"${builderExamTitle}" is ready.`);
+            setBuilderExamId(null);
+            onClose();
+          }}
         />
-      </form>
-    </Modal>
+      )}
+    </>
   );
 }

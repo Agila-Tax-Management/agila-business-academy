@@ -4,6 +4,7 @@
 import { Moon, Sun, Menu, LogOut, User, ChevronDown, Search } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
@@ -93,9 +94,19 @@ export default function LearnerHeader({ onMenuClick }: LearnerHeaderProps): Reac
             onClick={() => setDropdownOpen((prev) => !prev)}
             className="flex items-center gap-1.5 rounded-full hover:opacity-80 transition-opacity"
           >
-            <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center text-white font-semibold text-sm shadow-[0_2px_8px_rgba(99,102,241,0.30)]">
-              {user?.name?.[0]?.toUpperCase() ?? "U"}
-            </div>
+            {user?.image ? (
+              <Image
+                src={user.image}
+                alt={user.name}
+                width={32}
+                height={32}
+                className="w-8 h-8 rounded-full object-cover shadow-[0_2px_8px_rgba(99,102,241,0.30)]"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full gradient-bg flex items-center justify-center text-white font-semibold text-sm shadow-[0_2px_8px_rgba(99,102,241,0.30)]">
+                {user?.name?.[0]?.toUpperCase() ?? "U"}
+              </div>
+            )}
             <ChevronDown className="w-3 h-3 text-muted hidden sm:block" />
           </button>
 

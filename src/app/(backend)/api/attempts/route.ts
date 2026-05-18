@@ -14,6 +14,7 @@ export interface AttemptItem {
   passed: boolean;
   submittedAt: string | null;
   attemptNumber: number;
+  hasPendingReview: boolean;
 }
 
 export async function GET(_request: NextRequest): Promise<NextResponse> {
@@ -29,7 +30,17 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       orderBy: { createdAt: "desc" },
       include: {
         user: { select: { name: true, email: true } },
-        exam: { select: { title: true, scope: true } },
+        exam: {
+          select: {
+            title: true,
+            scope: true,
+            questions: { select: { id: true, type: true } },
+          },
+        },
+        answers: {
+          where:  { question: { type: "SHORT_ANSWER" } },
+          select: { isManuallyCorrect: true },
+        },
       },
     });
 
@@ -43,17 +54,22 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       attemptNumbers.set(a.id, n);
     }
 
-    const data: AttemptItem[] = attempts.map((a) => ({
-      id: a.id,
-      employeeName: a.user.name,
-      employeeEmail: a.user.email,
-      examTitle: a.exam.title,
-      scope: a.exam.scope,
-      score: a.score,
-      passed: a.passed,
-      submittedAt: a.submittedAt?.toISOString() ?? a.createdAt.toISOString(),
-      attemptNumber: attemptNumbers.get(a.id) ?? 1,
-    }));
+    const data: AttemptItem[] = attempts.map((a) => {
+      const hasSA = a.exam.questions.some((q) => q.type === "SHORT_ANSWER");
+      const hasPendingReview = hasSA && a.answers.some((ans) => ans.isManuallyCorrect === null);
+      return {
+        id: a.id,
+        employeeName: a.user.name,
+        employeeEmail: a.user.email,
+        examTitle: a.exam.title,
+        scope: a.exam.scope,
+        score: a.score,
+        passed: a.passed,
+        submittedAt: a.submittedAt?.toISOString() ?? a.createdAt.toISOString(),
+        attemptNumber: attemptNumbers.get(a.id) ?? 1,
+        hasPendingReview,
+      };
+    });
 
     return NextResponse.json({ data });
   } catch {

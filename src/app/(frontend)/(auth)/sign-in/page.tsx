@@ -38,18 +38,18 @@ export default function SignInPage(): React.ReactNode {
     <div>
       {/* Heading */}
       <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">Login Account</h1>
-      <p className="text-sm text-gray-400 mb-8 leading-relaxed">
+      <p className="text-sm text-gray-400 mb-6 leading-relaxed">
         Enter your credentials to access your training dashboard.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {/* Email */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Email ID
           </label>
           <div className="relative">
-            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 rounded-full" />
             <input
               type="email"
               value={email}
@@ -57,18 +57,17 @@ export default function SignInPage(): React.ReactNode {
               placeholder="you@agila.ph"
               required
               autoComplete="email"
-              className="w-full pl-4 pr-3 py-3 bg-transparent border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm placeholder:text-gray-300 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-800 dark:text-white text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
             />
           </div>
         </div>
 
         {/* Password */}
-        <div className="flex flex-col gap-1 mt-2">
+        <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Password
           </label>
           <div className="relative">
-            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 rounded-full" />
             <input
               type={showPass ? "text" : "password"}
               value={password}
@@ -76,7 +75,7 @@ export default function SignInPage(): React.ReactNode {
               placeholder="••••••••"
               required
               autoComplete="current-password"
-              className="w-full pl-4 pr-10 py-3 bg-transparent border-b border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white text-sm placeholder:text-gray-300 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-3 pr-10 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-800 dark:text-white text-sm placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
             />
             <button
               type="button"
@@ -88,8 +87,8 @@ export default function SignInPage(): React.ReactNode {
           </div>
         </div>
 
-        {/* Keep me signed in + Already a member */}
-        <div className="flex items-center justify-between mt-1">
+        {/* Keep me signed in */}
+        <div className="flex items-center mt-1">
           <label className="flex items-center gap-2 cursor-pointer">
             <div className="relative w-4 h-4">
               <input
@@ -108,16 +107,13 @@ export default function SignInPage(): React.ReactNode {
             </div>
             <span className="text-xs text-gray-500 dark:text-gray-400">Keep me signed in</span>
           </label>
-          <a href="/forgot-password" className="text-xs text-blue-500 hover:text-blue-600 hover:underline transition-colors">
-            Already a member?
-          </a>
         </div>
 
         {/* Submit */}
         <button
           type="submit"
           disabled={loading}
-          className="mt-4 w-full py-3.5 rounded-full text-white text-sm font-bold tracking-wider uppercase transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          className="mt-2 w-full py-3.5 rounded-full text-white text-sm font-bold tracking-wider uppercase transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           style={{ background: "linear-gradient(90deg, #1d4ed8 0%, #0ea5e9 100%)" }}
         >
           {loading ? (
@@ -131,8 +127,17 @@ export default function SignInPage(): React.ReactNode {
           ) : "Sign In"}
         </button>
       </form>
+      </div>
 
-      <p className="text-xs text-gray-400 text-center mt-8">
+      {/* Enroll now */}
+      <p className="text-center text-xs text-gray-400 mt-4">
+        New to Agila Business Academy?{" "}
+        <a href="/register" className="text-blue-500 font-semibold hover:text-blue-600 hover:underline transition-colors">
+          Enroll Now!
+        </a>
+      </p>
+
+      <p className="text-xs text-gray-400 text-center mt-4">
         For account issues, contact your HR administrator.
       </p>
     </div>

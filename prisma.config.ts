@@ -1,11 +1,7 @@
 // prisma.config.ts
 import "dotenv/config";
-import type { PrismaConfig } from "prisma";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { defineConfig } from "prisma/config";
 
-export default {
+export default defineConfig({
   schema: "prisma",
-  migrate: {
-    adapter: () => new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
-  },
-} satisfies PrismaConfig;
+});

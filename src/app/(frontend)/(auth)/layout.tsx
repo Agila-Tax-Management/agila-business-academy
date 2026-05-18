@@ -1,4 +1,6 @@
 // src/app/(frontend)/(auth)/layout.tsx
+import Image from "next/image";
+
 export default function AuthLayout({ children }: { children: React.ReactNode }): React.ReactNode {
   return (
     <div className="min-h-screen flex">
@@ -6,18 +8,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }):
       {/* ── Left panel — bold branding ───────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-1/2 flex-col items-start justify-between p-12 relative overflow-hidden"
-        style={{ background: "linear-gradient(155deg, #1e3a8a 0%, #1d4ed8 40%, #2563eb 65%, #0ea5e9 100%)" }}
+        style={{ backgroundImage: "url('/image/agila_cover.webp')", backgroundSize: "cover", backgroundPosition: "center" }}
       >
-        {/* Wave decoration layers */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: `
-              radial-gradient(ellipse 80% 50% at 50% 120%, rgba(255,255,255,0.12) 0%, transparent 70%),
-              radial-gradient(ellipse 60% 40% at 80% 10%, rgba(125,211,252,0.18) 0%, transparent 60%)
-            `,
-          }}
-        />
+        {/* Blue overlay */}
+        <div className="absolute inset-0 bg-blue-950/65 pointer-events-none" />
         {/* Decorative circles */}
         <div className="absolute top-8 right-16 w-20 h-20 rounded-full border-2 border-white/20 pointer-events-none" />
         <div className="absolute top-16 right-8 w-8 h-8 rounded-full bg-sky-300/30 pointer-events-none" />
@@ -44,7 +38,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }):
         {/* Top: company logo */}
         <div className="relative z-10 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-            <span className="text-white font-bold text-base">A</span>
+            <Image src="/image/agila_icon.ico" alt="Agila" width={28} height={28} unoptimized className="object-contain" />
           </div>
           <span className="text-white/90 text-sm font-semibold tracking-wide uppercase">Agila Business Academy</span>
         </div>
@@ -52,14 +46,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }):
         {/* Center: headline */}
         <div className="relative z-10 flex-1 flex flex-col justify-center">
           <p className="text-sky-200 text-sm font-medium tracking-widest uppercase mb-4">
-            Nice to see you again
+            Nice to see you
           </p>
           <h1 className="text-white font-black text-5xl xl:text-6xl leading-tight mb-6 tracking-tight">
-            WELCOME<br />BACK
+            WELCOME<br />
           </h1>
           <div className="w-12 h-1 bg-white/60 rounded-full mb-6" />
           <p className="text-white/70 text-sm leading-relaxed max-w-xs">
-            Access your training videos, complete exams, and earn certificates — all in one place built for Agila employees.
+            Access your training videos, complete exams, and earn certificates. All in one place built for Agila employees.
           </p>
         </div>
       </div>
@@ -70,7 +64,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }):
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md">
-              <span className="text-white font-bold">A</span>
+              <Image src="/image/agila_icon.ico" alt="Agila" width={30} height={30} unoptimized className="object-contain" />
             </div>
             <div>
               <p className="font-bold text-foreground leading-tight">Agila</p>

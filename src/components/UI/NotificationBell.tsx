@@ -59,6 +59,13 @@ export default function NotificationBell(): React.ReactNode {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   }
 
+  function markOneRead(id: string) {
+    fetch(`/api/notifications/${id}`, { method: "PATCH" }).catch(() => {});
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+    );
+  }
+
   function timeAgo(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
     const m    = Math.floor(diff / 60_000);
@@ -134,11 +141,11 @@ export default function NotificationBell(): React.ReactNode {
                 </div>
               );
               return n.actionUrl ? (
-                <Link key={n.id} href={n.actionUrl} onClick={() => setOpen(false)}>
+                <Link key={n.id} href={n.actionUrl} onClick={() => { markOneRead(n.id); setOpen(false); }}>
                   {inner}
                 </Link>
               ) : (
-                <div key={n.id}>{inner}</div>
+                <div key={n.id} onClick={() => markOneRead(n.id)} className="cursor-default">{inner}</div>
               );
             })}
           </div>

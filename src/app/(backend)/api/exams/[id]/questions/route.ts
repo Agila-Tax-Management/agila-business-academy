@@ -1,7 +1,11 @@
 // src/app/(backend)/api/exams/[id]/questions/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { QuestionType } from "@/generated/prisma";
 
-export type QuestionType = "MULTIPLE_CHOICE" | "TRUE_FALSE" | "SHORT_ANSWER";
+export type { QuestionType };
 
 export interface ChoiceItem {
   id: string;
@@ -19,74 +23,48 @@ export interface QuestionItem {
   choices: ChoiceItem[];
 }
 
-const MOCK_QUESTIONS: QuestionItem[] = [
-  {
-    id: "q1", examId: "exam1",
-    text: "What is the company's official working hours?",
-    type: "MULTIPLE_CHOICE", order: 1,
-    choices: [
-      { id: "c1", text: "8 AM to 5 PM",   isCorrect: true,  order: 1 },
-      { id: "c2", text: "9 AM to 6 PM",   isCorrect: false, order: 2 },
-      { id: "c3", text: "7 AM to 4 PM",   isCorrect: false, order: 3 },
-      { id: "c4", text: "Flexible hours", isCorrect: false, order: 4 },
-    ],
-  },
-  {
-    id: "q2", examId: "exam1",
-    text: "How many days of sick leave are provided annually?",
-    type: "MULTIPLE_CHOICE", order: 2,
-    choices: [
-      { id: "c5", text: "5 days",  isCorrect: false, order: 1 },
-      { id: "c6", text: "10 days", isCorrect: true,  order: 2 },
-      { id: "c7", text: "15 days", isCorrect: false, order: 3 },
-      { id: "c8", text: "None",    isCorrect: false, order: 4 },
-    ],
-  },
-  {
-    id: "q3", examId: "exam1",
-    text: "Is it mandatory to wear your ID inside the office premises?",
-    type: "TRUE_FALSE", order: 3,
-    choices: [
-      { id: "c9",  text: "True",  isCorrect: true,  order: 1 },
-      { id: "c10", text: "False", isCorrect: false, order: 2 },
-    ],
-  },
-  {
-    id: "q4", examId: "exam4",
-    text: "Personal Protective Equipment (PPE) must be worn at all times in hazardous areas.",
-    type: "TRUE_FALSE", order: 1,
-    choices: [
-      { id: "c11", text: "True",  isCorrect: true,  order: 1 },
-      { id: "c12", text: "False", isCorrect: false, order: 2 },
-    ],
-  },
-  {
-    id: "q5", examId: "exam4",
-    text: "What is the first step when you discover a workplace fire?",
-    type: "MULTIPLE_CHOICE", order: 2,
-    choices: [
-      { id: "c13", text: "Evacuate immediately via the fire exit plan", isCorrect: true,  order: 1 },
-      { id: "c14", text: "Try to extinguish the fire yourself",         isCorrect: false, order: 2 },
-      { id: "c15", text: "Call a colleague first",                      isCorrect: false, order: 3 },
-      { id: "c16", text: "Continue working until the alarm sounds",     isCorrect: false, order: 4 },
-    ],
-  },
-];
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const { id: examId } = await params;
-  // TODO: replace with real Prisma query
-  const questions = MOCK_QUESTIONS.filter((q) => q.examId === examId);
-  return NextResponse.json({ data: questions });
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  try {
+    const { id: examId } = await params;
+    const questions = await prisma.question.findMany({
+      where:   { examId },
+      orderBy: { order: "asc" },
+      include: { choices: { orderBy: { order: "asc" } } },
+    });
+
+    const data: QuestionItem[] = questions.map((q) => ({
+      id:      q.id,
+      examId:  q.examId,
+      text:    q.text,
+      type:    q.type,
+      order:   q.order,
+      choices: q.choices.map((c) => ({
+        id:        c.id,
+        text:      c.text,
+        isCorrect: c.isCorrect,
+        order:     c.order,
+      })),
+    }));
+
+    return NextResponse.json({ data });
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch questions." }, { status: 500 });
+  }
 }
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const { id: examId } = await params;
     const body = await request.json() as {
@@ -100,24 +78,42 @@ export async function POST(
       return NextResponse.json({ error: "Question text and type are required." }, { status: 400 });
     }
 
-    const existing = MOCK_QUESTIONS.filter((q) => q.examId === examId);
-    const newQuestion: QuestionItem = {
-      id:     crypto.randomUUID(),
-      examId,
-      text:   text.trim(),
-      type,
-      order:  existing.length + 1,
-      choices: (choices ?? []).map((c, i) => ({
-        id:        crypto.randomUUID(),
+    const count = await prisma.question.count({ where: { examId } });
+
+    const question = await prisma.question.create({
+      data: {
+        examId,
+        text:  text.trim(),
+        type,
+        order: count + 1,
+        choices: {
+          create: (choices ?? []).map((c, i) => ({
+            text:      c.text.trim(),
+            isCorrect: c.isCorrect,
+            order:     i + 1,
+          })),
+        },
+      },
+      include: { choices: { orderBy: { order: "asc" } } },
+    });
+
+    const data: QuestionItem = {
+      id:      question.id,
+      examId:  question.examId,
+      text:    question.text,
+      type:    question.type,
+      order:   question.order,
+      choices: question.choices.map((c) => ({
+        id:        c.id,
         text:      c.text,
         isCorrect: c.isCorrect,
-        order:     i + 1,
+        order:     c.order,
       })),
     };
 
-    // TODO: real prisma.question.create with choices
-    return NextResponse.json({ data: newQuestion }, { status: 201 });
+    return NextResponse.json({ data }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Failed to add question." }, { status: 500 });
   }
 }
+
